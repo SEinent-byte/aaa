@@ -1,11 +1,170 @@
 ---
-import Welcome from '../components/Welcome.astro';
-import Layout from '../layouts/Layout.astro';
+import '../styles/global.css';
+import { createClient } from '@supabase/supabase-js';
 
-// Welcome to Astro! Wondering what to do next? Check out the Astro documentation at https://docs.astro.build
-// Don't want to use any of this? Delete everything in this file, the `assets`, `components`, and `layouts` directories, and start fresh.
+const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
+const supabaseKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
+
+let productos = [];
+let error = null;
+let envMissing = false;
+
+if (!supabaseUrl || !supabaseKey) {
+  envMissing = true;
+} else {
+  const supabase = createClient(supabaseUrl, supabaseKey);
+  const response = await supabase
+    .from('productos')
+    .select('*')
+    .order('creado_en', { ascending: false });
+
+  productos = response.data || [];
+  error = response.error;
+
+  if (error) {
+    console.error('Supabase error:', error);
+  }
+}
 ---
 
-<Layout>
-	<Welcome />
-</Layout>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>Tienda de Electrónica (Astro + Supabase)</title>
+  </head>
+  <body class="bg-slate-950 text-slate-100 min-h-screen p-8">
+    <main class="max-w-6xl mx-auto space-y-8">
+      <header>
+        <h1 class="text-4xl font-bold text-cyan-300">Tienda de Electrónica</h1>
+        <p class="text-slate-400 mt-2">CRUD básico con Supabase + Astro + Thunder Client / Postman.</p>
+      </header>
+
+      <section class="bg-slate-900 p-6 rounded-xl border border-slate-700 shadow-lg">
+        <h2 class="text-2xl font-semibold text-white mb-4">Agregar Producto</h2>
+        <form id="formAgregar" class="grid grid-cols-1 md:grid-cols-2 gap-4" autocomplete="off">
+          <input name="nombre" placeholder="Nombre" required class="p-2 rounded bg-slate-800 border border-slate-700" />
+          <input name="categoria" placeholder="Categoría" class="p-2 rounded bg-slate-800 border border-slate-700" />
+          <input name="precio" type="number" step="0.01" placeholder="Precio" required class="p-2 rounded bg-slate-800 border border-slate-700" />
+          <input name="stock" type="number" placeholder="Stock" required class="p-2 rounded bg-slate-800 border border-slate-700" />
+          <textarea name="descripcion" placeholder="Descripción" rows="2" class="p-2 rounded bg-slate-800 border border-slate-700 md:col-span-2"></textarea>
+          <button type="submit" class="md:col-span-2 py-2 px-4 rounded bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold">Crear Producto</button>
+        </form>
+      </section>
+
+      <section>
+        <h2 class="text-2xl font-semibold text-white mb-4">Productos</h2>
+        {envMissing ? (
+          <div class="p-4 rounded-lg bg-amber-500 text-amber-950">
+            <strong>Variables de entorno no configuradas.</strong>
+            <p class="mt-2">Crea .env.local en la raíz del proyecto con:</p>
+            <pre class="mt-2 bg-slate-800 p-2 rounded">
+PUBLIC_SUPABASE_URL=https://vyjryhvakzeklrgoxdbq.supabase.co
+PUBLIC_SUPABASE_ANON_KEY=sb_publishable_4f25hDk-vdDFAY1S1zzJ5g_9EV8VihS
+            </pre>
+            <p class="mt-2">Luego reinicia el server con <code>npm run dev</code>.</p>
+          </div>
+        ) : (
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {productos?.map((producto) => (
+              <article class="p-4 rounded-xl bg-slate-900 border border-slate-700">
+              <h3 class="text-xl text-cyan-300 font-bold">{producto.nombre}</h3>
+              <p class="text-sm text-slate-400">{producto.descripcion ?? 'Sin descripción'}</p>
+              <p class="text-slate-300 mt-2">Categoría: {producto.categoria ?? 'General'}</p>
+              <p class="text-slate-300">Precio: ${producto.precio?.toFixed(2)}</p>
+              <p class="text-slate-300">Stock: {producto.stock}</p>
+              <div class="mt-4 flex gap-2">
+                <button class="btn-accion" type="button" data-delete-id={producto.id}>Eliminar</button>
+                <button class="btn-accion" type="button" data-update-id={producto.id}>Editar</button>
+              </div>
+            </article>
+          ))}
+          </div>
+        )}
+      </section>
+    </main>
+
+    <style>
+      .btn-accion {
+        background-color: #0ea5e9;
+        color: #0f172a;
+        border: none;
+        border-radius: 0.5rem;
+        padding: 0.5rem 1rem;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .btn-accion:hover { background-color: #38bdf8; }
+    </style>
+
+    <script type="module">
+      const formAgregar = document.getElementById('formAgregar');
+
+      formAgregar.addEventListener('submit', async (event) => {
+        event.preventDefault();
+
+        const formData = new FormData(formAgregar);
+        const body = {
+          nombre: formData.get('nombre'),
+          categoria: formData.get('categoria'),
+          descripcion: formData.get('descripcion'),
+          precio: Number(formData.get('precio')),
+          stock: Number(formData.get('stock'))
+        };
+
+        const res = await fetch('/api/productos', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+
+        if (res.ok) {
+          location.reload();
+        } else {
+          const err = await res.json();
+          alert('Error crear producto: ' + (err?.error || JSON.stringify(err)));
+        }
+      });
+
+      document.querySelectorAll('[data-delete-id]').forEach((button) => {
+        button.addEventListener('click', async () => {
+          const id = button.dataset.deleteId;
+          if (!confirm('¿Eliminar producto?')) return;
+
+          const res = await fetch(`/api/productos/${id}`, { method: 'DELETE' });
+          if (res.status === 204) {
+            location.reload();
+          } else {
+            const err = await res.json();
+            alert('Error eliminar: ' + (err?.error || JSON.stringify(err)));
+          }
+        });
+      });
+
+      document.querySelectorAll('[data-update-id]').forEach((button) => {
+        button.addEventListener('click', async () => {
+          const id = button.dataset.updateId;
+          const nombre = prompt('Nuevo nombre');
+          if (!nombre) return;
+          const precio = parseFloat(prompt('Nuevo precio', '0'));
+          if (Number.isNaN(precio)) return alert('Precio inválido');
+
+          const res = await fetch(`/api/productos/${id}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ nombre, precio })
+          });
+
+          if (res.ok) {
+            location.reload();
+          } else {
+            const err = await res.json();
+            alert('Error editar: ' + (err?.error || JSON.stringify(err)));
+          }
+        });
+      });
+    </script>
+  </body>
+</html>
