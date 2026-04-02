@@ -188,9 +188,8 @@ if (!supabaseUrl || !supabaseKey) {
       }
     </style>
 
+    <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js"></script>
     <script type="module">
-      import * as imageCompression from 'https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js';
-
       const formAgregar = document.getElementById('formAgregar');
       const submitBtn = formAgregar.querySelector('button[type="submit"]');
       const nombreInput = formAgregar.querySelector('input[name="nombre"]');
@@ -234,7 +233,7 @@ if (!supabaseUrl || !supabaseKey) {
               fileType: 'image/webp',
               initialQuality: 0.7
             };
-            imagenComprimida = await imageCompression.default(imagenFile, options);
+            imagenComprimida = await window.imageCompression(imagenFile, options);
           } catch (error) {
             console.error('Error al comprimir imagen:', error);
             alert('Error al procesar la imagen. Intenta con otra.');
