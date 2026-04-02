@@ -17,7 +17,19 @@ const CATEGORIAS = [
   'Cables y conectores'
 ];
 
-let productos = [];
+const CATEGORIA_COLORES: Record<string, { border: string; badge: string; badgeText: string; accent: string }> = {
+  'Microcontroladores': { border: 'border-blue-500/40', badge: 'bg-blue-500/15', badgeText: 'text-blue-400', accent: 'group-hover:border-blue-400' },
+  'Herramientas':       { border: 'border-amber-500/40', badge: 'bg-amber-500/15', badgeText: 'text-amber-400', accent: 'group-hover:border-amber-400' },
+  'Componentes':        { border: 'border-purple-500/40', badge: 'bg-purple-500/15', badgeText: 'text-purple-400', accent: 'group-hover:border-purple-400' },
+  'Sensores':           { border: 'border-emerald-500/40', badge: 'bg-emerald-500/15', badgeText: 'text-emerald-400', accent: 'group-hover:border-emerald-400' },
+  'Actuadores':         { border: 'border-rose-500/40', badge: 'bg-rose-500/15', badgeText: 'text-rose-400', accent: 'group-hover:border-rose-400' },
+  'Fuentes de poder':   { border: 'border-yellow-500/40', badge: 'bg-yellow-500/15', badgeText: 'text-yellow-400', accent: 'group-hover:border-yellow-400' },
+  'Cables y conectores':{ border: 'border-cyan-500/40', badge: 'bg-cyan-500/15', badgeText: 'text-cyan-400', accent: 'group-hover:border-cyan-400' },
+};
+
+const DEFAULT_COLOR = { border: 'border-slate-600/40', badge: 'bg-slate-700', badgeText: 'text-slate-400', accent: 'group-hover:border-slate-400' };
+
+let productos: any[] = [];
 let supabaseError = null;
 let envMissing = false;
 
@@ -32,10 +44,6 @@ if (!supabaseUrl || !supabaseKey) {
 
   productos = response.data || [];
   supabaseError = response.error;
-
-  if (supabaseError) {
-    console.error('Supabase error:', supabaseError);
-  }
 }
 ---
 
@@ -46,173 +54,225 @@ if (!supabaseUrl || !supabaseKey) {
     <title>ElectroShop - Tienda de Electrónica</title>
   </head>
   <body class="bg-slate-950 text-slate-100 min-h-screen">
+
     <!-- Header -->
-    <header class="bg-slate-900 border-b border-slate-700 sticky top-0 z-50">
-      <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-        <h1 class="text-2xl md:text-3xl font-bold text-cyan-400">⚡ ElectroShop</h1>
-        <nav class="flex gap-4">
-          <a href="/" class="text-slate-300 hover:text-cyan-400 transition">Productos</a>
-        </nav>
+    <header class="bg-slate-900/80 backdrop-blur border-b border-slate-800 sticky top-0 z-50">
+      <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <span class="text-2xl">⚡</span>
+          <div>
+            <h1 class="text-xl font-bold text-white leading-none">ElectroShop</h1>
+            <p class="text-xs text-slate-500">Componentes & Electrónica</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-4">
+          <span class="text-sm text-slate-400">{productos.length} productos</span>
+          <button id="btn-abrir-form" class="py-2 px-4 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-sm font-bold transition">
+            + Agregar
+          </button>
+        </div>
       </div>
     </header>
 
-    <main class="max-w-7xl mx-auto px-4 py-8 space-y-8">
+    <!-- Modal formulario -->
+    <div id="modal-form" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div class="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-lg">
+        <div class="flex items-center justify-between p-5 border-b border-slate-700">
+          <h2 class="text-lg font-bold text-white">Nuevo Producto</h2>
+          <button id="btn-cerrar-form" class="text-slate-400 hover:text-white transition text-xl leading-none">&times;</button>
+        </div>
+        <form id="formAgregar" class="p-5 grid grid-cols-1 gap-4" autocomplete="off">
+          <div class="grid grid-cols-2 gap-4">
+            <input name="nombre" placeholder="Nombre del producto" required class="col-span-2 p-3 rounded-lg bg-slate-800 border border-slate-600 focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400 transition text-sm" />
+
+            <select name="categoria" required class="p-3 rounded-lg bg-slate-800 border border-slate-600 focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400 transition text-sm">
+              <option value="">Categoría</option>
+              {CATEGORIAS.map(cat => (
+                <option value={cat}>{cat}</option>
+              ))}
+            </select>
+
+            <input name="precio" type="number" step="0.01" min="0" placeholder="Precio (S/)" required class="p-3 rounded-lg bg-slate-800 border border-slate-600 focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400 transition text-sm" />
+            <input name="stock" type="number" min="0" placeholder="Stock" required class="p-3 rounded-lg bg-slate-800 border border-slate-600 focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400 transition text-sm" />
+
+            <textarea name="descripcion" placeholder="Descripción (opcional)" rows="2" class="col-span-2 p-3 rounded-lg bg-slate-800 border border-slate-600 focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400 transition text-sm resize-none"></textarea>
+          </div>
+
+          <div>
+            <label class="block text-xs text-slate-400 mb-2">Imagen del producto (opcional — JPG, PNG, WEBP, GIF · máx 5MB)</label>
+            <div id="drop-zone" class="relative border-2 border-dashed border-slate-600 hover:border-cyan-500 rounded-xl p-6 text-center transition cursor-pointer">
+              <input name="imagen" id="imagen-input" type="file" accept="image/jpeg,image/png,image/webp,image/gif" class="absolute inset-0 opacity-0 w-full h-full cursor-pointer" />
+              <div id="drop-placeholder">
+                <svg class="mx-auto mb-2 w-8 h-8 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <p class="text-sm text-slate-500">Arrastra una imagen o <span class="text-cyan-400">haz clic</span></p>
+              </div>
+              <img id="preview-img" class="hidden mx-auto max-h-32 rounded-lg object-cover" alt="Preview" />
+            </div>
+          </div>
+
+          <button type="submit" class="w-full py-3 px-6 rounded-lg bg-cyan-500 hover:bg-cyan-400 active:bg-cyan-600 text-slate-950 font-bold transition text-sm">
+            Crear Producto
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <main class="max-w-7xl mx-auto px-4 py-8 space-y-6">
+
       {envMissing && (
-        <div class="p-4 rounded-lg bg-amber-500/10 border border-amber-500 text-amber-400">
-          <strong>Variables de entorno no configuradas.</strong>
-          <p class="mt-2 text-sm">Verifica que el archivo <code>.env.local</code> exista con las credenciales de Supabase.</p>
+        <div class="p-4 rounded-xl bg-amber-500/10 border border-amber-500 text-amber-400 text-sm">
+          <strong>Variables de entorno no configuradas.</strong> Verifica el archivo <code>.env.local</code>.
         </div>
       )}
 
       {supabaseError && !envMissing && (
-        <div class="p-4 rounded-lg bg-red-500/10 border border-red-500 text-red-400">
+        <div class="p-4 rounded-xl bg-red-500/10 border border-red-500 text-red-400 text-sm">
           <strong>Error al cargar productos:</strong> {supabaseError.message}
         </div>
       )}
 
-      <!-- Formulario de Nuevo Producto -->
-      <section class="bg-slate-900 p-6 rounded-xl border border-slate-700 shadow-lg">
-        <h2 class="text-2xl font-semibold text-white mb-4">Agregar Nuevo Producto</h2>
-        <form id="formAgregar" class="grid grid-cols-1 md:grid-cols-2 gap-4" autocomplete="off" enctype="multipart/form-data">
-          <input name="nombre" placeholder="Nombre del producto" required class="p-3 rounded-lg bg-slate-800 border border-slate-600 focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400 transition" />
-
-          <select name="categoria" required class="p-3 rounded-lg bg-slate-800 border border-slate-600 focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400 transition">
-            <option value="">Seleccionar categoría</option>
-            {CATEGORIAS.map(cat => (
-              <option value={cat}>{cat}</option>
-            ))}
-          </select>
-
-          <input name="precio" type="number" step="0.01" min="0" placeholder="Precio (S/)" required class="p-3 rounded-lg bg-slate-800 border border-slate-600 focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400 transition" />
-          <input name="stock" type="number" min="0" placeholder="Stock" required class="p-3 rounded-lg bg-slate-800 border border-slate-600 focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400 transition" />
-
-          <textarea name="descripcion" placeholder="Descripción (opcional)" rows="2" class="p-3 rounded-lg bg-slate-800 border border-slate-600 focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400 transition md:col-span-2 resize-none"></textarea>
-
-          <div class="md:col-span-2">
-            <label class="block text-sm text-slate-400 mb-2">Imagen del producto (opcional)</label>
-            <input
-              name="imagen"
-              type="file"
-              accept="image/jpeg,image/png,image/webp,image/gif"
-              class="block w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-cyan-500/10 file:text-cyan-400 hover:file:bg-cyan-500/20 transition cursor-pointer"
-            />
-            <p class="text-xs text-slate-500 mt-1">Formatos: JPG, PNG, WEBP, GIF. Máx 5MB. La imagen se comprimirá automáticamente.</p>
-          </div>
-
-          <button type="submit" class="md:col-span-2 py-3 px-6 rounded-lg bg-cyan-500 hover:bg-cyan-400 active:bg-cyan-600 text-slate-950 font-bold transition transform hover:scale-[1.02]">
-            Crear Producto
-          </button>
-        </form>
-      </section>
-
-      <!-- Lista de Productos -->
-      <section>
-        <div class="flex items-center justify-between mb-4">
-          <h2 class="text-2xl font-semibold text-white">
-            Productos {productos?.length > 0 && <span class="text-slate-500 text-lg">({productos.length})</span>}
-          </h2>
+      <!-- Filtro por categoría -->
+      {productos.length > 0 && (
+        <div class="flex flex-wrap gap-2">
+          <button class="filtro-btn active px-3 py-1.5 rounded-full text-xs font-semibold transition" data-cat="todas">Todas</button>
+          {[...new Set(productos.map(p => p.categoria).filter(Boolean))].map(cat => {
+            const col = CATEGORIA_COLORES[cat] ?? DEFAULT_COLOR;
+            return (
+              <button class={`filtro-btn px-3 py-1.5 rounded-full text-xs font-semibold transition ${col.badge} ${col.badgeText}`} data-cat={cat}>{cat}</button>
+            );
+          })}
         </div>
+      )}
 
-        {!envMissing && productos?.length === 0 && (
-          <div class="text-center py-12 text-slate-500">
-            <p class="text-lg">No hay productos registrados</p>
-            <p class="text-sm mt-1">Usa el formulario para agregar uno</p>
-          </div>
-        )}
+      <!-- Grid de productos -->
+      {!envMissing && productos.length === 0 && (
+        <div class="text-center py-20 text-slate-500">
+          <p class="text-5xl mb-4">📦</p>
+          <p class="text-lg font-medium">No hay productos registrados</p>
+          <p class="text-sm mt-1">Haz clic en "+ Agregar" para añadir el primero</p>
+        </div>
+      )}
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {productos?.map((producto) => (
-            <article class="bg-slate-900 rounded-xl border border-slate-700 hover:border-cyan-500/50 transition shadow-lg overflow-hidden group">
-              <!-- Imagen del producto -->
-              <div class="aspect-square bg-slate-800 overflow-hidden relative">
+      <div id="grid-productos" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+        {productos.map((producto) => {
+          const col = CATEGORIA_COLORES[producto.categoria] ?? DEFAULT_COLOR;
+          return (
+            <article
+              class={`group producto-card bg-slate-900 rounded-2xl border ${col.border} ${col.accent} hover:shadow-xl hover:shadow-black/30 transition-all duration-300 overflow-hidden flex flex-col`}
+              data-categoria={producto.categoria || ''}
+            >
+              <!-- Imagen -->
+              <div class="aspect-[4/3] bg-slate-800 overflow-hidden relative">
                 {producto.imagen_url ? (
                   <img
                     src={producto.imagen_url}
                     alt={producto.nombre}
-                    class="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                    class="w-full h-full object-cover group-hover:scale-105 transition duration-500"
                     loading="lazy"
                   />
                 ) : (
-                  <div class="w-full h-full flex items-center justify-center text-slate-600">
-                    <svg class="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div class="w-full h-full flex items-center justify-center text-slate-700">
+                    <svg class="w-14 h-14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
                   </div>
                 )}
+                <!-- Badge categoría -->
+                <span class={`absolute top-2 left-2 text-xs font-semibold px-2.5 py-1 rounded-full ${col.badge} ${col.badgeText} backdrop-blur-sm`}>
+                  {producto.categoria || 'General'}
+                </span>
               </div>
 
-              <div class="p-4">
-                <span class="text-xs text-cyan-400 bg-cyan-500/10 px-2 py-1 rounded-full">{producto.categoria || 'General'}</span>
-                <h3 class="text-lg text-white font-bold mt-2 truncate" title={producto.nombre}>{producto.nombre}</h3>
-                <p class="text-sm text-slate-400 mt-1 line-clamp-2 min-h-[2.5rem]">{producto.descripcion || 'Sin descripción'}</p>
+              <!-- Info -->
+              <div class="p-4 flex flex-col flex-1">
+                <h3 class="text-white font-bold text-base leading-snug line-clamp-2 mb-1" title={producto.nombre}>{producto.nombre}</h3>
+                <p class="text-xs text-slate-500 line-clamp-2 flex-1">{producto.descripcion || 'Sin descripción'}</p>
 
-                <div class="mt-3 flex items-center justify-between">
-                  <span class="text-xl text-emerald-400 font-bold">S/ {Number(producto.precio)?.toFixed(2)}</span>
-                  <span class="text-xs text-slate-500">Stock: {producto.stock}</span>
+                <div class="mt-3 flex items-end justify-between">
+                  <div>
+                    <p class="text-xs text-slate-500 leading-none mb-0.5">Precio</p>
+                    <span class="text-xl font-extrabold text-emerald-400">S/ {Number(producto.precio)?.toFixed(2)}</span>
+                  </div>
+                  <div class="text-right">
+                    <p class="text-xs text-slate-500 leading-none mb-0.5">Stock</p>
+                    <span class={`text-sm font-bold ${producto.stock > 0 ? 'text-slate-300' : 'text-red-400'}`}>{producto.stock} ud.</span>
+                  </div>
                 </div>
 
                 <div class="mt-4 flex gap-2">
-                  <button class="btn-delete flex-1 py-2 px-3 rounded-lg text-sm font-semibold transition" type="button" data-delete-id={producto.id}>Eliminar</button>
-                  <button class="btn-edit flex-1 py-2 px-3 rounded-lg text-sm font-semibold transition" type="button" data-update-id={producto.id}>Editar</button>
+                  <button class="btn-delete flex-1 py-2 rounded-lg text-xs font-semibold bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition" data-delete-id={producto.id}>Eliminar</button>
+                  <button class="btn-edit flex-1 py-2 rounded-lg text-xs font-semibold bg-sky-500/10 text-sky-400 border border-sky-500/20 hover:bg-sky-500/20 transition" data-update-id={producto.id}>Editar</button>
                 </div>
               </div>
             </article>
-          ))}
-        </div>
-      </section>
+          );
+        })}
+      </div>
     </main>
 
     <style>
-      .btn-delete {
-        background-color: rgba(239, 68, 68, 0.2);
-        color: #f87171;
-        border: 1px solid rgba(239, 68, 68, 0.3);
+      .filtro-btn {
+        background: rgba(255,255,255,0.05);
+        color: #94a3b8;
+        border: 1px solid rgba(255,255,255,0.08);
       }
-      .btn-delete:hover {
-        background-color: rgba(239, 68, 68, 0.3);
-        border-color: rgba(239, 68, 68, 0.5);
-      }
-      .btn-edit {
-        background-color: rgba(14, 165, 233, 0.2);
-        color: #38bdf8;
-        border: 1px solid rgba(14, 165, 233, 0.3);
-      }
-      .btn-edit:hover {
-        background-color: rgba(14, 165, 233, 0.3);
-        border-color: rgba(14, 165, 233, 0.5);
-      }
-      /* Emoji regex pattern for validation */
-      .error-input {
-        border-color: #ef4444 !important;
-        box-shadow: 0 0 0 1px #ef4444 !important;
+      .filtro-btn:hover { background: rgba(255,255,255,0.1); }
+      .filtro-btn.active {
+        background: #06b6d4;
+        color: #0f172a;
+        border-color: #06b6d4;
       }
     </style>
 
-    <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js"></script>
-    <script type="module">
-      const formAgregar = document.getElementById('formAgregar');
-      const submitBtn = formAgregar.querySelector('button[type="submit"]');
-      const nombreInput = formAgregar.querySelector('input[name="nombre"]');
+    <script>
+      import imageCompression from 'browser-image-compression';
 
-      // Validar que el nombre no tenga emojis
+      // --- Modal ---
+      const modal = document.getElementById('modal-form')!;
+      document.getElementById('btn-abrir-form')!.addEventListener('click', () => modal.classList.remove('hidden'));
+      document.getElementById('btn-cerrar-form')!.addEventListener('click', () => modal.classList.add('hidden'));
+      modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.add('hidden'); });
+
+      // --- Preview imagen ---
+      const imagenInput = document.getElementById('imagen-input') as HTMLInputElement;
+      const previewImg = document.getElementById('preview-img') as HTMLImageElement;
+      const dropPlaceholder = document.getElementById('drop-placeholder')!;
+
+      imagenInput.addEventListener('change', () => {
+        const file = imagenInput.files?.[0];
+        if (file) {
+          previewImg.src = URL.createObjectURL(file);
+          previewImg.classList.remove('hidden');
+          dropPlaceholder.classList.add('hidden');
+        } else {
+          previewImg.classList.add('hidden');
+          dropPlaceholder.classList.remove('hidden');
+        }
+      });
+
+      // --- Formulario ---
+      const formAgregar = document.getElementById('formAgregar') as HTMLFormElement;
+      const submitBtn = formAgregar.querySelector('button[type="submit"]') as HTMLButtonElement;
+      const nombreInput = formAgregar.querySelector('input[name="nombre"]') as HTMLInputElement;
       const emojiRegex = /[\p{Emoji}]/u;
 
       nombreInput.addEventListener('input', () => {
         if (emojiRegex.test(nombreInput.value)) {
-          nombreInput.classList.add('error-input');
+          nombreInput.style.borderColor = '#ef4444';
           nombreInput.setCustomValidity('Los nombres no pueden contener emojis');
         } else {
-          nombreInput.classList.remove('error-input');
+          nombreInput.style.borderColor = '';
           nombreInput.setCustomValidity('');
         }
       });
 
-      formAgregar.addEventListener('submit', async (event) => {
-        event.preventDefault();
+      formAgregar.addEventListener('submit', async (e) => {
+        e.preventDefault();
 
-        // Validar emojis nuevamente antes de enviar
         if (emojiRegex.test(nombreInput.value)) {
-          alert('Error: Los nombres de producto no pueden contener emojis');
+          alert('Error: Los nombres no pueden contener emojis');
           return;
         }
 
@@ -220,32 +280,11 @@ if (!supabaseUrl || !supabaseKey) {
         submitBtn.textContent = 'Creando...';
 
         const formData = new FormData(formAgregar);
-        const imagenFile = formData.get('imagen');
-        let imagenComprimida = null;
+        const imagenFile = formData.get('imagen') as File | null;
 
-        // Comprimir imagen si existe
-        if (imagenFile && imagenFile.size > 0) {
-          try {
-            const options = {
-              maxSizeMB: 0.5,
-              maxWidthOrHeight: 800,
-              useWebWorker: true,
-              fileType: 'image/webp',
-              initialQuality: 0.7
-            };
-            imagenComprimida = await window.imageCompression(imagenFile, options);
-          } catch (error) {
-            console.error('Error al comprimir imagen:', error);
-            alert('Error al procesar la imagen. Intenta con otra.');
-            submitBtn.disabled = false;
-            submitBtn.textContent = 'Crear Producto';
-            return;
-          }
-        }
-
-        // Crear producto primero
+        // 1. Crear producto
         const body = {
-          nombre: formData.get('nombre').trim(),
+          nombre: (formData.get('nombre') as string).trim(),
           categoria: formData.get('categoria'),
           descripcion: formData.get('descripcion'),
           precio: Number(formData.get('precio')),
@@ -260,37 +299,46 @@ if (!supabaseUrl || !supabaseKey) {
           });
 
           const data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'No se pudo crear el producto');
 
-          if (!res.ok) {
-            throw new Error(data.error || 'No se pudo crear el producto');
-          }
-
-          // Subir imagen si existe
-          if (imagenComprimida) {
-            const imagenFormData = new FormData();
-            imagenFormData.append('file', imagenComprimida, 'imagen.webp');
-            imagenFormData.append('productId', data.id);
-
-            const resImagen = await fetch('/api/upload', {
-              method: 'POST',
-              body: imagenFormData
-            });
-
-            const imagenData = await resImagen.json();
-
-            if (resImagen.ok) {
-              // Actualizar producto con URL de imagen
-              await fetch(`/api/productos/${data.id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ imagen_url: imagenData.url })
+          // 2. Subir imagen si existe
+          if (imagenFile && imagenFile.size > 0) {
+            try {
+              const compressed = await imageCompression(imagenFile, {
+                maxSizeMB: 0.5,
+                maxWidthOrHeight: 800,
+                useWebWorker: true,
+                fileType: 'image/webp',
+                initialQuality: 0.7
               });
+
+              const imgFormData = new FormData();
+              imgFormData.append('file', compressed, 'imagen.webp');
+              imgFormData.append('productId', data.id);
+
+              const resImg = await fetch('/api/upload', { method: 'POST', body: imgFormData });
+              const imgData = await resImg.json();
+
+              if (resImg.ok && imgData.url) {
+                await fetch(`/api/productos/${data.id}`, {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ imagen_url: imgData.url })
+                });
+              }
+            } catch (imgErr) {
+              console.error('Error al subir imagen:', imgErr);
+              // El producto ya fue creado, no bloqueamos
             }
           }
 
           formAgregar.reset();
+          previewImg.classList.add('hidden');
+          dropPlaceholder.classList.remove('hidden');
+          modal.classList.add('hidden');
           location.reload();
-        } catch (error) {
+
+        } catch (error: any) {
           alert('Error: ' + error.message);
         } finally {
           submitBtn.disabled = false;
@@ -298,44 +346,54 @@ if (!supabaseUrl || !supabaseKey) {
         }
       });
 
-      document.querySelectorAll('[data-delete-id]').forEach((button) => {
+      // --- Filtro por categoría ---
+      document.querySelectorAll('.filtro-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.filtro-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          const cat = (btn as HTMLElement).dataset.cat;
+          document.querySelectorAll<HTMLElement>('.producto-card').forEach(card => {
+            if (cat === 'todas' || card.dataset.categoria === cat) {
+              card.style.display = '';
+            } else {
+              card.style.display = 'none';
+            }
+          });
+        });
+      });
+
+      // --- Eliminar ---
+      document.querySelectorAll('[data-delete-id]').forEach(button => {
         button.addEventListener('click', async () => {
-          const id = button.dataset.deleteId;
+          const id = (button as HTMLElement).dataset.deleteId!;
           if (!confirm('¿Seguro que deseas eliminar este producto?')) return;
 
-          const originalText = button.textContent;
-          button.disabled = true;
-          button.textContent = 'Eliminando...';
+          const btn = button as HTMLButtonElement;
+          btn.disabled = true;
+          btn.textContent = 'Eliminando...';
 
-          try {
-            const res = await fetch(`/api/productos/${id}`, { method: 'DELETE' });
-            if (res.status === 204) {
-              location.reload();
-            } else {
-              const err = await res.json();
-              alert('Error: ' + (err.error || 'No se pudo eliminar'));
-              button.disabled = false;
-              button.textContent = originalText;
-            }
-          } catch {
-            alert('Error de conexión');
-            button.disabled = false;
-            button.textContent = originalText;
+          const res = await fetch(`/api/productos/${id}`, { method: 'DELETE' });
+          if (res.status === 204) {
+            location.reload();
+          } else {
+            const err = await res.json();
+            alert('Error: ' + (err.error || 'No se pudo eliminar'));
+            btn.disabled = false;
+            btn.textContent = 'Eliminar';
           }
         });
       });
 
-      document.querySelectorAll('[data-update-id]').forEach((button) => {
+      // --- Editar ---
+      document.querySelectorAll('[data-update-id]').forEach(button => {
         button.addEventListener('click', async () => {
-          const id = button.dataset.updateId;
-          const card = button.closest('article');
-          const nombreActual = card.querySelector('h3').textContent;
+          const id = (button as HTMLElement).dataset.updateId!;
+          const card = button.closest('article')!;
+          const nombreActual = card.querySelector('h3')!.textContent!;
 
           const nuevoNombre = prompt('Nuevo nombre:', nombreActual);
           if (!nuevoNombre?.trim()) return;
 
-          // Validar emojis en el nuevo nombre
-          const emojiRegex = /[\p{Emoji}]/u;
           if (emojiRegex.test(nuevoNombre)) {
             alert('Error: Los nombres no pueden contener emojis');
             return;
@@ -344,48 +402,34 @@ if (!supabaseUrl || !supabaseKey) {
           const nuevoPrecio = prompt('Nuevo precio (S/):');
           if (nuevoPrecio === null) return;
           const precio = parseFloat(nuevoPrecio);
-          if (Number.isNaN(precio) || precio < 0) {
-            alert('Precio inválido');
-            return;
-          }
+          if (Number.isNaN(precio) || precio < 0) { alert('Precio inválido'); return; }
 
           const nuevoStock = prompt('Nuevo stock:');
-          const stock = nuevoStock !== null ? parseInt(nuevoStock) : null;
-          if (nuevoStock !== null && (Number.isNaN(stock) || stock < 0)) {
-            alert('Stock inválido');
-            return;
-          }
+          if (nuevoStock === null) return;
+          const stock = parseInt(nuevoStock);
+          if (Number.isNaN(stock) || stock < 0) { alert('Stock inválido'); return; }
 
-          const originalText = button.textContent;
-          button.disabled = true;
-          button.textContent = 'Guardando...';
+          const btn = button as HTMLButtonElement;
+          btn.disabled = true;
+          btn.textContent = 'Guardando...';
 
-          const payload = { nombre: nuevoNombre.trim(), precio };
-          if (stock !== null) payload.stock = stock;
+          const res = await fetch(`/api/productos/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nombre: nuevoNombre.trim(), precio, stock })
+          });
 
-          try {
-            const res = await fetch(`/api/productos/${id}`, {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(payload)
-            });
-
-            const data = await res.json();
-
-            if (res.ok) {
-              location.reload();
-            } else {
-              alert('Error: ' + (data.error || 'No se pudo actualizar'));
-              button.disabled = false;
-              button.textContent = originalText;
-            }
-          } catch {
-            alert('Error de conexión');
-            button.disabled = false;
-            button.textContent = originalText;
+          const data = await res.json();
+          if (res.ok) {
+            location.reload();
+          } else {
+            alert('Error: ' + (data.error || 'No se pudo actualizar'));
+            btn.disabled = false;
+            btn.textContent = 'Editar';
           }
         });
       });
     </script>
+
   </body>
 </html>
