@@ -2,11 +2,23 @@
 import '../styles/global.css';
 import { createClient } from '@supabase/supabase-js';
 
+export const prerender = false;
+
 const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
 const supabaseKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
 
+const CATEGORIAS = [
+  'Microcontroladores',
+  'Herramientas',
+  'Componentes',
+  'Sensores',
+  'Actuadores',
+  'Fuentes de poder',
+  'Cables y conectores'
+];
+
 let productos = [];
-let error = null;
+let supabaseError = null;
 let envMissing = false;
 
 if (!supabaseUrl || !supabaseKey) {
@@ -19,10 +31,10 @@ if (!supabaseUrl || !supabaseKey) {
     .order('creado_en', { ascending: false });
 
   productos = response.data || [];
-  error = response.error;
+  supabaseError = response.error;
 
-  if (error) {
-    console.error('Supabase error:', error);
+  if (supabaseError) {
+    console.error('Supabase error:', supabaseError);
   }
 }
 ---
@@ -31,112 +43,285 @@ if (!supabaseUrl || !supabaseKey) {
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1.0" />
-    <title>Tienda de Electrónica (Astro + Supabase)</title>
+    <title>ElectroShop - Tienda de Electrónica</title>
   </head>
-  <body class="bg-slate-950 text-slate-100 min-h-screen p-8">
-    <main class="max-w-6xl mx-auto space-y-8">
-      <header>
-        <h1 class="text-4xl font-bold text-cyan-300">Tienda de Electrónica</h1>
-        <p class="text-slate-400 mt-2">CRUD básico con Supabase + Astro + Thunder Client / Postman.</p>
-      </header>
+  <body class="bg-slate-950 text-slate-100 min-h-screen">
+    <!-- Header -->
+    <header class="bg-slate-900 border-b border-slate-700 sticky top-0 z-50">
+      <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+        <h1 class="text-2xl md:text-3xl font-bold text-cyan-400">⚡ ElectroShop</h1>
+        <nav class="flex gap-4">
+          <a href="/" class="text-slate-300 hover:text-cyan-400 transition">Productos</a>
+        </nav>
+      </div>
+    </header>
 
+    <main class="max-w-7xl mx-auto px-4 py-8 space-y-8">
+      {envMissing && (
+        <div class="p-4 rounded-lg bg-amber-500/10 border border-amber-500 text-amber-400">
+          <strong>Variables de entorno no configuradas.</strong>
+          <p class="mt-2 text-sm">Verifica que el archivo <code>.env.local</code> exista con las credenciales de Supabase.</p>
+        </div>
+      )}
+
+      {supabaseError && !envMissing && (
+        <div class="p-4 rounded-lg bg-red-500/10 border border-red-500 text-red-400">
+          <strong>Error al cargar productos:</strong> {supabaseError.message}
+        </div>
+      )}
+
+      <!-- Formulario de Nuevo Producto -->
       <section class="bg-slate-900 p-6 rounded-xl border border-slate-700 shadow-lg">
-        <h2 class="text-2xl font-semibold text-white mb-4">Agregar Producto</h2>
-        <form id="formAgregar" class="grid grid-cols-1 md:grid-cols-2 gap-4" autocomplete="off">
-          <input name="nombre" placeholder="Nombre" required class="p-2 rounded bg-slate-800 border border-slate-700" />
-          <input name="categoria" placeholder="Categoría" class="p-2 rounded bg-slate-800 border border-slate-700" />
-          <input name="precio" type="number" step="0.01" placeholder="Precio" required class="p-2 rounded bg-slate-800 border border-slate-700" />
-          <input name="stock" type="number" placeholder="Stock" required class="p-2 rounded bg-slate-800 border border-slate-700" />
-          <textarea name="descripcion" placeholder="Descripción" rows="2" class="p-2 rounded bg-slate-800 border border-slate-700 md:col-span-2"></textarea>
-          <button type="submit" class="md:col-span-2 py-2 px-4 rounded bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold">Crear Producto</button>
+        <h2 class="text-2xl font-semibold text-white mb-4">Agregar Nuevo Producto</h2>
+        <form id="formAgregar" class="grid grid-cols-1 md:grid-cols-2 gap-4" autocomplete="off" enctype="multipart/form-data">
+          <input name="nombre" placeholder="Nombre del producto" required class="p-3 rounded-lg bg-slate-800 border border-slate-600 focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400 transition" />
+
+          <select name="categoria" required class="p-3 rounded-lg bg-slate-800 border border-slate-600 focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400 transition">
+            <option value="">Seleccionar categoría</option>
+            {CATEGORIAS.map(cat => (
+              <option value={cat}>{cat}</option>
+            ))}
+          </select>
+
+          <input name="precio" type="number" step="0.01" min="0" placeholder="Precio (S/)" required class="p-3 rounded-lg bg-slate-800 border border-slate-600 focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400 transition" />
+          <input name="stock" type="number" min="0" placeholder="Stock" required class="p-3 rounded-lg bg-slate-800 border border-slate-600 focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400 transition" />
+
+          <textarea name="descripcion" placeholder="Descripción (opcional)" rows="2" class="p-3 rounded-lg bg-slate-800 border border-slate-600 focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400 transition md:col-span-2 resize-none"></textarea>
+
+          <div class="md:col-span-2">
+            <label class="block text-sm text-slate-400 mb-2">Imagen del producto (opcional)</label>
+            <input
+              name="imagen"
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              class="block w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-cyan-500/10 file:text-cyan-400 hover:file:bg-cyan-500/20 transition cursor-pointer"
+            />
+            <p class="text-xs text-slate-500 mt-1">Formatos: JPG, PNG, WEBP, GIF. Máx 5MB. La imagen se comprimirá automáticamente.</p>
+          </div>
+
+          <button type="submit" class="md:col-span-2 py-3 px-6 rounded-lg bg-cyan-500 hover:bg-cyan-400 active:bg-cyan-600 text-slate-950 font-bold transition transform hover:scale-[1.02]">
+            Crear Producto
+          </button>
         </form>
       </section>
 
+      <!-- Lista de Productos -->
       <section>
-        <h2 class="text-2xl font-semibold text-white mb-4">Productos</h2>
-        {envMissing ? (
-          <div class="p-4 rounded-lg bg-amber-500 text-amber-950">
-            <strong>Variables de entorno no configuradas.</strong>
-            <p class="mt-2">Crea .env.local en la raíz del proyecto con:</p>
-            <pre class="mt-2 bg-slate-800 p-2 rounded">
-PUBLIC_SUPABASE_URL=https://vyjryhvakzeklrgoxdbq.supabase.co
-PUBLIC_SUPABASE_ANON_KEY=sb_publishable_4f25hDk-vdDFAY1S1zzJ5g_9EV8VihS
-            </pre>
-            <p class="mt-2">Luego reinicia el server con <code>npm run dev</code>.</p>
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-2xl font-semibold text-white">
+            Productos {productos?.length > 0 && <span class="text-slate-500 text-lg">({productos.length})</span>}
+          </h2>
+        </div>
+
+        {!envMissing && productos?.length === 0 && (
+          <div class="text-center py-12 text-slate-500">
+            <p class="text-lg">No hay productos registrados</p>
+            <p class="text-sm mt-1">Usa el formulario para agregar uno</p>
           </div>
-        ) : (
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {productos?.map((producto) => (
-              <article class="p-4 rounded-xl bg-slate-900 border border-slate-700">
-              <h3 class="text-xl text-cyan-300 font-bold">{producto.nombre}</h3>
-              <p class="text-sm text-slate-400">{producto.descripcion ?? 'Sin descripción'}</p>
-              <p class="text-slate-300 mt-2">Categoría: {producto.categoria ?? 'General'}</p>
-              <p class="text-slate-300">Precio: ${producto.precio?.toFixed(2)}</p>
-              <p class="text-slate-300">Stock: {producto.stock}</p>
-              <div class="mt-4 flex gap-2">
-                <button class="btn-accion" type="button" data-delete-id={producto.id}>Eliminar</button>
-                <button class="btn-accion" type="button" data-update-id={producto.id}>Editar</button>
+        )}
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {productos?.map((producto) => (
+            <article class="bg-slate-900 rounded-xl border border-slate-700 hover:border-cyan-500/50 transition shadow-lg overflow-hidden group">
+              <!-- Imagen del producto -->
+              <div class="aspect-square bg-slate-800 overflow-hidden relative">
+                {producto.imagen_url ? (
+                  <img
+                    src={producto.imagen_url}
+                    alt={producto.nombre}
+                    class="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div class="w-full h-full flex items-center justify-center text-slate-600">
+                    <svg class="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                )}
+              </div>
+
+              <div class="p-4">
+                <span class="text-xs text-cyan-400 bg-cyan-500/10 px-2 py-1 rounded-full">{producto.categoria || 'General'}</span>
+                <h3 class="text-lg text-white font-bold mt-2 truncate" title={producto.nombre}>{producto.nombre}</h3>
+                <p class="text-sm text-slate-400 mt-1 line-clamp-2 min-h-[2.5rem]">{producto.descripcion || 'Sin descripción'}</p>
+
+                <div class="mt-3 flex items-center justify-between">
+                  <span class="text-xl text-emerald-400 font-bold">S/ {Number(producto.precio)?.toFixed(2)}</span>
+                  <span class="text-xs text-slate-500">Stock: {producto.stock}</span>
+                </div>
+
+                <div class="mt-4 flex gap-2">
+                  <button class="btn-delete flex-1 py-2 px-3 rounded-lg text-sm font-semibold transition" type="button" data-delete-id={producto.id}>Eliminar</button>
+                  <button class="btn-edit flex-1 py-2 px-3 rounded-lg text-sm font-semibold transition" type="button" data-update-id={producto.id}>Editar</button>
+                </div>
               </div>
             </article>
           ))}
-          </div>
-        )}
+        </div>
       </section>
     </main>
 
     <style>
-      .btn-accion {
-        background-color: #0ea5e9;
-        color: #0f172a;
-        border: none;
-        border-radius: 0.5rem;
-        padding: 0.5rem 1rem;
-        font-weight: 700;
-        cursor: pointer;
+      .btn-delete {
+        background-color: rgba(239, 68, 68, 0.2);
+        color: #f87171;
+        border: 1px solid rgba(239, 68, 68, 0.3);
       }
-      .btn-accion:hover { background-color: #38bdf8; }
+      .btn-delete:hover {
+        background-color: rgba(239, 68, 68, 0.3);
+        border-color: rgba(239, 68, 68, 0.5);
+      }
+      .btn-edit {
+        background-color: rgba(14, 165, 233, 0.2);
+        color: #38bdf8;
+        border: 1px solid rgba(14, 165, 233, 0.3);
+      }
+      .btn-edit:hover {
+        background-color: rgba(14, 165, 233, 0.3);
+        border-color: rgba(14, 165, 233, 0.5);
+      }
+      /* Emoji regex pattern for validation */
+      .error-input {
+        border-color: #ef4444 !important;
+        box-shadow: 0 0 0 1px #ef4444 !important;
+      }
     </style>
 
     <script type="module">
+      import imageCompression from 'browser-image-compression';
+
       const formAgregar = document.getElementById('formAgregar');
+      const submitBtn = formAgregar.querySelector('button[type="submit"]');
+      const nombreInput = formAgregar.querySelector('input[name="nombre"]');
+
+      // Validar que el nombre no tenga emojis
+      const emojiRegex = /[\p{Emoji}]/u;
+
+      nombreInput.addEventListener('input', () => {
+        if (emojiRegex.test(nombreInput.value)) {
+          nombreInput.classList.add('error-input');
+          nombreInput.setCustomValidity('Los nombres no pueden contener emojis');
+        } else {
+          nombreInput.classList.remove('error-input');
+          nombreInput.setCustomValidity('');
+        }
+      });
 
       formAgregar.addEventListener('submit', async (event) => {
         event.preventDefault();
 
+        // Validar emojis nuevamente antes de enviar
+        if (emojiRegex.test(nombreInput.value)) {
+          alert('Error: Los nombres de producto no pueden contener emojis');
+          return;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Creando...';
+
         const formData = new FormData(formAgregar);
+        const imagenFile = formData.get('imagen');
+        let imagenComprimida = null;
+
+        // Comprimir imagen si existe
+        if (imagenFile && imagenFile.size > 0) {
+          try {
+            const options = {
+              maxSizeMB: 0.5,
+              maxWidthOrHeight: 800,
+              useWebWorker: true,
+              fileType: 'image/webp',
+              initialQuality: 0.7
+            };
+            imagenComprimida = await imageCompression(imagenFile, options);
+          } catch (error) {
+            console.error('Error al comprimir imagen:', error);
+            alert('Error al procesar la imagen. Intenta con otra.');
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Crear Producto';
+            return;
+          }
+        }
+
+        // Crear producto primero
         const body = {
-          nombre: formData.get('nombre'),
+          nombre: formData.get('nombre').trim(),
           categoria: formData.get('categoria'),
           descripcion: formData.get('descripcion'),
           precio: Number(formData.get('precio')),
           stock: Number(formData.get('stock'))
         };
 
-        const res = await fetch('/api/productos', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body)
-        });
+        try {
+          const res = await fetch('/api/productos', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+          });
 
-        if (res.ok) {
+          const data = await res.json();
+
+          if (!res.ok) {
+            throw new Error(data.error || 'No se pudo crear el producto');
+          }
+
+          // Subir imagen si existe
+          if (imagenComprimida) {
+            const imagenFormData = new FormData();
+            imagenFormData.append('file', imagenComprimida, 'imagen.webp');
+            imagenFormData.append('productId', data.id);
+
+            const resImagen = await fetch('/api/upload', {
+              method: 'POST',
+              body: imagenFormData
+            });
+
+            const imagenData = await resImagen.json();
+
+            if (resImagen.ok) {
+              // Actualizar producto con URL de imagen
+              await fetch(`/api/productos/${data.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ imagen_url: imagenData.url })
+              });
+            }
+          }
+
+          formAgregar.reset();
           location.reload();
-        } else {
-          const err = await res.json();
-          alert('Error crear producto: ' + (err?.error || JSON.stringify(err)));
+        } catch (error) {
+          alert('Error: ' + error.message);
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Crear Producto';
         }
       });
 
       document.querySelectorAll('[data-delete-id]').forEach((button) => {
         button.addEventListener('click', async () => {
           const id = button.dataset.deleteId;
-          if (!confirm('¿Eliminar producto?')) return;
+          if (!confirm('¿Seguro que deseas eliminar este producto?')) return;
 
-          const res = await fetch(`/api/productos/${id}`, { method: 'DELETE' });
-          if (res.status === 204) {
-            location.reload();
-          } else {
-            const err = await res.json();
-            alert('Error eliminar: ' + (err?.error || JSON.stringify(err)));
+          const originalText = button.textContent;
+          button.disabled = true;
+          button.textContent = 'Eliminando...';
+
+          try {
+            const res = await fetch(`/api/productos/${id}`, { method: 'DELETE' });
+            if (res.status === 204) {
+              location.reload();
+            } else {
+              const err = await res.json();
+              alert('Error: ' + (err.error || 'No se pudo eliminar'));
+              button.disabled = false;
+              button.textContent = originalText;
+            }
+          } catch {
+            alert('Error de conexión');
+            button.disabled = false;
+            button.textContent = originalText;
           }
         });
       });
@@ -144,24 +329,61 @@ PUBLIC_SUPABASE_ANON_KEY=sb_publishable_4f25hDk-vdDFAY1S1zzJ5g_9EV8VihS
       document.querySelectorAll('[data-update-id]').forEach((button) => {
         button.addEventListener('click', async () => {
           const id = button.dataset.updateId;
-          const nombre = prompt('Nuevo nombre');
-          if (!nombre) return;
-          const precio = parseFloat(prompt('Nuevo precio', '0'));
-          if (Number.isNaN(precio)) return alert('Precio inválido');
+          const card = button.closest('article');
+          const nombreActual = card.querySelector('h3').textContent;
 
-          const res = await fetch(`/api/productos/${id}`, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ nombre, precio })
-          });
+          const nuevoNombre = prompt('Nuevo nombre:', nombreActual);
+          if (!nuevoNombre?.trim()) return;
 
-          if (res.ok) {
-            location.reload();
-          } else {
-            const err = await res.json();
-            alert('Error editar: ' + (err?.error || JSON.stringify(err)));
+          // Validar emojis en el nuevo nombre
+          const emojiRegex = /[\p{Emoji}]/u;
+          if (emojiRegex.test(nuevoNombre)) {
+            alert('Error: Los nombres no pueden contener emojis');
+            return;
+          }
+
+          const nuevoPrecio = prompt('Nuevo precio (S/):');
+          if (nuevoPrecio === null) return;
+          const precio = parseFloat(nuevoPrecio);
+          if (Number.isNaN(precio) || precio < 0) {
+            alert('Precio inválido');
+            return;
+          }
+
+          const nuevoStock = prompt('Nuevo stock:');
+          const stock = nuevoStock !== null ? parseInt(nuevoStock) : null;
+          if (nuevoStock !== null && (Number.isNaN(stock) || stock < 0)) {
+            alert('Stock inválido');
+            return;
+          }
+
+          const originalText = button.textContent;
+          button.disabled = true;
+          button.textContent = 'Guardando...';
+
+          const payload = { nombre: nuevoNombre.trim(), precio };
+          if (stock !== null) payload.stock = stock;
+
+          try {
+            const res = await fetch(`/api/productos/${id}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
+
+            const data = await res.json();
+
+            if (res.ok) {
+              location.reload();
+            } else {
+              alert('Error: ' + (data.error || 'No se pudo actualizar'));
+              button.disabled = false;
+              button.textContent = originalText;
+            }
+          } catch {
+            alert('Error de conexión');
+            button.disabled = false;
+            button.textContent = originalText;
           }
         });
       });
