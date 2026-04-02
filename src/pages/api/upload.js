@@ -13,7 +13,7 @@ if (!supabaseUrl || !anonKey) {
 // Para storage usamos service key (bypasea RLS)
 // Si no está configurada, caemos al anon key
 const supabaseAdmin = createClient(supabaseUrl, serviceKey || anonKey);
-const BUCKET = 'productos-imagenes';
+const BUCKET = 'productos-imagene';
 
 export async function POST({ request }) {
   try {

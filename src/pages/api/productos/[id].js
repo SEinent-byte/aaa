@@ -124,7 +124,7 @@ export async function DELETE({ params }) {
     if (urlParts.length > 1) {
       const imagePath = 'productos/' + urlParts[1];
       await supabase.storage
-        .from('productos-imagenes')
+        .from('productos-imagene')
         .remove([imagePath]);
     }
   }
