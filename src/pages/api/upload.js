@@ -3,134 +3,105 @@ import { createClient } from '@supabase/supabase-js';
 export const prerender = false;
 
 const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
-const supabaseKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
+const anonKey     = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
+const serviceKey  = import.meta.env.SUPABASE_SERVICE_KEY;
 
-if (!supabaseUrl || !supabaseKey) {
+if (!supabaseUrl || !anonKey) {
   throw new Error('Supabase credentials not configured. Check .env.local');
 }
 
-const supabase = createClient(supabaseUrl, supabaseKey);
+// Para storage usamos service key (puede crear buckets y subir sin RLS)
+// Si no está configurada, caemos al anon key (puede fallar si no hay policies)
+const supabaseAdmin = createClient(supabaseUrl, serviceKey || anonKey);
+const BUCKET = 'productos-imagenes';
+
+async function ensureBucket() {
+  const { data: buckets } = await supabaseAdmin.storage.listBuckets();
+  const exists = buckets?.some(b => b.name === BUCKET);
+  if (!exists) {
+    const { error } = await supabaseAdmin.storage.createBucket(BUCKET, {
+      public: true,
+      fileSizeLimit: 5 * 1024 * 1024,
+      allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
+    });
+    if (error) throw new Error(`No se pudo crear el bucket: ${error.message}`);
+  }
+}
 
 export async function POST({ request }) {
   try {
-    const formData = await request.formData();
-    const file = formData.get('file');
+    const formData  = await request.formData();
+    const file      = formData.get('file');
     const productId = formData.get('productId');
 
     if (!file || !(file instanceof File)) {
-      return new Response(JSON.stringify({ error: 'Archivo no válido' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      });
+      return json400('Archivo no válido');
     }
-
     if (!productId) {
-      return new Response(JSON.stringify({ error: 'ID de producto requerido' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      });
+      return json400('ID de producto requerido');
     }
 
-    // Validar tipo de archivo
     const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
     if (!validTypes.includes(file.type)) {
-      return new Response(JSON.stringify({
-        error: 'Tipo de archivo no válido. Solo se permiten JPG, PNG, WEBP o GIF'
-      }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      });
+      return json400('Tipo de archivo no válido. Solo JPG, PNG, WEBP o GIF');
     }
-
-    // Validar tamaño (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      return new Response(JSON.stringify({
-        error: 'El archivo no puede superar los 5MB'
-      }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      });
+      return json400('El archivo no puede superar los 5 MB');
     }
 
-    // Generar nombre único
-    const ext = file.name.split('.').pop();
-    const fileName = `${productId}-${Date.now()}.${ext}`;
-    const path = `productos/${fileName}`;
+    // Asegurar que el bucket existe (lo crea si no existe)
+    await ensureBucket();
 
-    // Subir a Supabase Storage
-    const { data, error } = await supabase.storage
-      .from('productos-imagenes')
-      .upload(path, file, {
-        cacheControl: '3600',
-        upsert: false
-      });
+    const ext      = (file.name.split('.').pop() || 'jpg').toLowerCase();
+    const fileName = `${productId}-${Date.now()}.${ext}`;
+    const path     = `productos/${fileName}`;
+
+    const { data, error } = await supabaseAdmin.storage
+      .from(BUCKET)
+      .upload(path, file, { cacheControl: '3600', upsert: true });
 
     if (error) {
-      console.error('Error uploading:', error);
-      return new Response(JSON.stringify({
-        error: error.message || 'Error al subir la imagen'
-      }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' }
-      });
+      console.error('Upload error:', error);
+      return json500(error.message || 'Error al subir la imagen');
     }
 
-    // Obtener URL pública
-    const { data: urlData } = supabase.storage
-      .from('productos-imagenes')
-      .getPublicUrl(path);
+    const { data: urlData } = supabaseAdmin.storage.from(BUCKET).getPublicUrl(path);
 
-    return new Response(JSON.stringify({
-      success: true,
-      url: urlData.publicUrl,
-      path: data.path
-    }), {
+    return new Response(JSON.stringify({ success: true, url: urlData.publicUrl, path: data.path }), {
       status: 200,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' },
     });
 
-  } catch (error) {
-    console.error('Upload error:', error);
-    return new Response(JSON.stringify({
-      error: 'Error interno del servidor'
-    }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
+  } catch (err) {
+    console.error('Upload error:', err);
+    return json500(err.message || 'Error interno del servidor');
   }
 }
 
 export async function DELETE({ request }) {
   try {
     const { imagePath } = await request.json();
+    if (!imagePath) return json400('Ruta de imagen requerida');
 
-    if (!imagePath) {
-      return new Response(JSON.stringify({ error: 'Ruta de imagen requerida' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
-
-    const { error } = await supabase.storage
-      .from('productos-imagenes')
-      .remove([imagePath]);
-
-    if (error) {
-      return new Response(JSON.stringify({ error: error.message }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
+    const { error } = await supabaseAdmin.storage.from(BUCKET).remove([imagePath]);
+    if (error) return json400(error.message);
 
     return new Response(JSON.stringify({ success: true }), {
       status: 200,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' },
     });
-
-  } catch (error) {
-    return new Response(JSON.stringify({ error: 'Error interno' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
+  } catch (err) {
+    return json500('Error interno');
   }
+}
+
+function json400(msg) {
+  return new Response(JSON.stringify({ error: msg }), {
+    status: 400, headers: { 'Content-Type': 'application/json' },
+  });
+}
+function json500(msg) {
+  return new Response(JSON.stringify({ error: msg }), {
+    status: 500, headers: { 'Content-Type': 'application/json' },
+  });
 }
