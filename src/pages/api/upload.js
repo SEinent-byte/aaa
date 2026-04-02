@@ -10,23 +10,10 @@ if (!supabaseUrl || !anonKey) {
   throw new Error('Supabase credentials not configured. Check .env.local');
 }
 
-// Para storage usamos service key (puede crear buckets y subir sin RLS)
-// Si no está configurada, caemos al anon key (puede fallar si no hay policies)
+// Para storage usamos service key (bypasea RLS)
+// Si no está configurada, caemos al anon key
 const supabaseAdmin = createClient(supabaseUrl, serviceKey || anonKey);
 const BUCKET = 'productos-imagenes';
-
-async function ensureBucket() {
-  const { data: buckets } = await supabaseAdmin.storage.listBuckets();
-  const exists = buckets?.some(b => b.name === BUCKET);
-  if (!exists) {
-    const { error } = await supabaseAdmin.storage.createBucket(BUCKET, {
-      public: true,
-      fileSizeLimit: 5 * 1024 * 1024,
-      allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
-    });
-    if (error) throw new Error(`No se pudo crear el bucket: ${error.message}`);
-  }
-}
 
 export async function POST({ request }) {
   try {
@@ -48,9 +35,6 @@ export async function POST({ request }) {
     if (file.size > 5 * 1024 * 1024) {
       return json400('El archivo no puede superar los 5 MB');
     }
-
-    // Asegurar que el bucket existe (lo crea si no existe)
-    await ensureBucket();
 
     const ext      = (file.name.split('.').pop() || 'jpg').toLowerCase();
     const fileName = `${productId}-${Date.now()}.${ext}`;
