@@ -8,586 +8,609 @@ const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
 const supabaseKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
 
 const CATEGORIAS = [
-  'Microcontroladores',
-  'Herramientas',
-  'Componentes',
-  'Sensores',
-  'Actuadores',
-  'Fuentes de poder',
-  'Cables y conectores'
+  'Microcontroladores','Herramientas','Componentes',
+  'Sensores','Actuadores','Fuentes de poder','Cables y conectores'
 ];
 
-const CATEGORIA_COLORES: Record<string, { border: string; badge: string; badgeText: string; accent: string }> = {
-  'Microcontroladores': { border: 'border-blue-500/40',    badge: 'bg-blue-500/15',    badgeText: 'text-blue-400',    accent: 'group-hover:border-blue-400'    },
-  'Herramientas':       { border: 'border-amber-500/40',   badge: 'bg-amber-500/15',   badgeText: 'text-amber-400',   accent: 'group-hover:border-amber-400'   },
-  'Componentes':        { border: 'border-purple-500/40',  badge: 'bg-purple-500/15',  badgeText: 'text-purple-400',  accent: 'group-hover:border-purple-400'  },
-  'Sensores':           { border: 'border-emerald-500/40', badge: 'bg-emerald-500/15', badgeText: 'text-emerald-400', accent: 'group-hover:border-emerald-400' },
-  'Actuadores':         { border: 'border-rose-500/40',    badge: 'bg-rose-500/15',    badgeText: 'text-rose-400',    accent: 'group-hover:border-rose-400'    },
-  'Fuentes de poder':   { border: 'border-yellow-500/40',  badge: 'bg-yellow-500/15',  badgeText: 'text-yellow-400',  accent: 'group-hover:border-yellow-400'  },
-  'Cables y conectores':{ border: 'border-cyan-500/40',    badge: 'bg-cyan-500/15',    badgeText: 'text-cyan-400',    accent: 'group-hover:border-cyan-400'    },
+const CAT: Record<string, { border:string; glow:string; badge:string; badgeText:string; dot:string }> = {
+  'Microcontroladores': { border:'border-blue-500/30',    glow:'hover:shadow-blue-500/10',    badge:'bg-blue-500/15 border border-blue-500/30',    badgeText:'text-blue-300',    dot:'bg-blue-400'    },
+  'Herramientas':       { border:'border-amber-500/30',   glow:'hover:shadow-amber-500/10',   badge:'bg-amber-500/15 border border-amber-500/30',   badgeText:'text-amber-300',   dot:'bg-amber-400'   },
+  'Componentes':        { border:'border-purple-500/30',  glow:'hover:shadow-purple-500/10',  badge:'bg-purple-500/15 border border-purple-500/30',  badgeText:'text-purple-300',  dot:'bg-purple-400'  },
+  'Sensores':           { border:'border-emerald-500/30', glow:'hover:shadow-emerald-500/10', badge:'bg-emerald-500/15 border border-emerald-500/30', badgeText:'text-emerald-300', dot:'bg-emerald-400' },
+  'Actuadores':         { border:'border-rose-500/30',    glow:'hover:shadow-rose-500/10',    badge:'bg-rose-500/15 border border-rose-500/30',    badgeText:'text-rose-300',    dot:'bg-rose-400'    },
+  'Fuentes de poder':   { border:'border-yellow-500/30',  glow:'hover:shadow-yellow-500/10',  badge:'bg-yellow-500/15 border border-yellow-500/30',  badgeText:'text-yellow-300',  dot:'bg-yellow-400'  },
+  'Cables y conectores':{ border:'border-cyan-500/30',    glow:'hover:shadow-cyan-500/10',    badge:'bg-cyan-500/15 border border-cyan-500/30',    badgeText:'text-cyan-300',    dot:'bg-cyan-400'    },
 };
-
-const DEFAULT_COLOR = { border: 'border-slate-600/40', badge: 'bg-slate-700', badgeText: 'text-slate-400', accent: 'group-hover:border-slate-400' };
+const DEF = { border:'border-slate-700/50', glow:'hover:shadow-slate-500/10', badge:'bg-slate-700/50 border border-slate-600/30', badgeText:'text-slate-400', dot:'bg-slate-400' };
 
 let productos: any[] = [];
-let supabaseError = null;
+let supabaseError: any = null;
 let envMissing = false;
 
 if (!supabaseUrl || !supabaseKey) {
   envMissing = true;
 } else {
   const supabase = createClient(supabaseUrl, supabaseKey);
-  const response = await supabase
-    .from('productos')
-    .select('*')
-    .order('creado_en', { ascending: false });
+  const response = await supabase.from('productos').select('*').order('creado_en', { ascending: false });
   productos = response.data || [];
   supabaseError = response.error;
 }
 ---
 
 <html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
-    <title>ElectroShop - Tienda de Electrónica</title>
-  </head>
-  <body class="bg-slate-950 text-slate-100 min-h-screen">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>ElectroShop — Componentes & Electrónica</title>
+  <style>
+    /* ── base ── */
+    *, *::before, *::after { box-sizing: border-box; }
 
-    <!-- ───────── HEADER ───────── -->
-    <header class="bg-slate-900/80 backdrop-blur border-b border-slate-800 sticky top-0 z-50">
-      <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-        <div class="flex items-center gap-3">
-          <span class="text-2xl">⚡</span>
-          <div>
-            <h1 class="text-xl font-bold text-white leading-none">ElectroShop</h1>
-            <p class="text-xs text-slate-500">Componentes & Electrónica</p>
-          </div>
+    body {
+      background: #020617;
+      background-image:
+        radial-gradient(ellipse 80% 40% at 50% -10%, rgba(6,182,212,.07) 0%, transparent 70%),
+        radial-gradient(ellipse 60% 30% at 80% 110%, rgba(139,92,246,.05) 0%, transparent 60%);
+      min-height: 100vh;
+    }
+
+    /* ── card ── */
+    .product-card {
+      background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%);
+      transition: transform .28s cubic-bezier(.22,1,.36,1), box-shadow .28s ease;
+      will-change: transform;
+    }
+    .product-card:hover { transform: translateY(-4px); }
+
+    /* ── imagen centrada, nunca estirada ── */
+    .img-wrap {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 4/3;
+      overflow: hidden;
+      background: #1e293b;
+    }
+    .img-wrap img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+      transition: transform .5s cubic-bezier(.22,1,.36,1), filter .3s ease;
+    }
+    .product-card:hover .img-wrap img { transform: scale(1.06); filter: brightness(1.05); }
+
+    /* degradado inferior sobre imagen */
+    .img-wrap::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(15,23,42,.75) 0%, rgba(15,23,42,.15) 45%, transparent 100%);
+      pointer-events: none;
+    }
+
+    /* ── badge categoría ── */
+    .cat-badge {
+      position: absolute;
+      top: 10px; left: 10px;
+      z-index: 2;
+      display: flex; align-items: center; gap: 5px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 11px; font-weight: 600;
+      backdrop-filter: blur(8px);
+      letter-spacing: .02em;
+    }
+    .cat-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+
+    /* ── precio ── */
+    .price-tag {
+      font-size: 1.35rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #34d399 0%, #059669 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1;
+    }
+
+    /* ── botones acción ── */
+    .btn-action {
+      display: flex; align-items: center; justify-content: center; gap: 5px;
+      flex: 1; padding: 8px 6px;
+      border-radius: 10px;
+      font-size: 12px; font-weight: 600;
+      transition: background .2s, transform .15s;
+      cursor: pointer; border: none;
+    }
+    .btn-action:active { transform: scale(.96); }
+    .btn-del  { background: rgba(239,68,68,.1);  color: #fca5a5; border: 1px solid rgba(239,68,68,.2); }
+    .btn-del:hover  { background: rgba(239,68,68,.2); }
+    .btn-edit { background: rgba(56,189,248,.1);  color: #7dd3fc; border: 1px solid rgba(56,189,248,.2); }
+    .btn-edit:hover { background: rgba(56,189,248,.2); }
+
+    /* ── placeholder sin imagen ── */
+    .img-placeholder {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 8px; color: #334155;
+    }
+
+    /* ── filtros ── */
+    .filtro-btn {
+      display: flex; align-items: center; gap: 5px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 12px; font-weight: 600;
+      border: 1px solid rgba(255,255,255,.07);
+      background: rgba(255,255,255,.04);
+      color: #94a3b8;
+      cursor: pointer;
+      transition: background .2s, color .2s, border-color .2s, transform .15s;
+    }
+    .filtro-btn:hover { background: rgba(255,255,255,.08); color: #e2e8f0; }
+    .filtro-btn:active { transform: scale(.96); }
+    .filtro-btn.active { background: #06b6d4; color: #0f172a; border-color: #06b6d4; }
+
+    /* ── modales ── */
+    .modal-backdrop {
+      position: fixed; inset: 0; z-index: 50;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(0,0,0,.65);
+      backdrop-filter: blur(6px);
+      padding: 16px;
+      overflow-y: auto;
+    }
+    .modal-box {
+      background: linear-gradient(160deg, #1e293b 0%, #0f172a 100%);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 20px;
+      box-shadow: 0 25px 60px rgba(0,0,0,.6);
+      width: 100%; max-width: 480px;
+      margin: auto;
+    }
+
+    /* ── input / select / textarea ── */
+    .field {
+      width: 100%; padding: 11px 14px;
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.09);
+      border-radius: 10px;
+      color: #e2e8f0; font-size: 13.5px;
+      transition: border-color .2s, box-shadow .2s;
+      outline: none;
+    }
+    .field:focus { border-color: #06b6d4; box-shadow: 0 0 0 3px rgba(6,182,212,.12); }
+    .field::placeholder { color: #475569; }
+
+    /* ── dropzone ── */
+    .dropzone {
+      position: relative;
+      border: 2px dashed rgba(255,255,255,.1);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color .2s, background .2s;
+    }
+    .dropzone:hover { border-color: #06b6d4; background: rgba(6,182,212,.04); }
+    .dropzone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+
+    /* ── btn submit ── */
+    .btn-submit {
+      width: 100%; padding: 12px;
+      border-radius: 12px;
+      font-weight: 700; font-size: 14px;
+      border: none; cursor: pointer;
+      transition: opacity .2s, transform .15s;
+    }
+    .btn-submit:hover { opacity: .9; }
+    .btn-submit:active { transform: scale(.98); }
+    .btn-crear  { background: linear-gradient(135deg,#06b6d4,#0284c7); color: #fff; }
+    .btn-editar { background: linear-gradient(135deg,#38bdf8,#0ea5e9); color: #0f172a; }
+    .btn-submit:disabled { opacity: .5; cursor: not-allowed; }
+  </style>
+</head>
+<body>
+
+<!-- ── HEADER ── -->
+<header style="background:rgba(2,6,23,.85); backdrop-filter:blur(12px); border-bottom:1px solid rgba(255,255,255,.06); position:sticky; top:0; z-index:40;">
+  <div style="max-width:1280px; margin:0 auto; padding:0 20px; height:60px; display:flex; align-items:center; justify-content:space-between;">
+    <div style="display:flex; align-items:center; gap:10px;">
+      <!-- ícono rayo SVG -->
+      <div style="width:36px;height:36px;background:linear-gradient(135deg,#06b6d4,#6366f1);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M13 2L4.09 12.96A1 1 0 005 14.5h6.5L11 22l8.91-10.96A1 1 0 0019 9.5H12.5L13 2Z" fill="white"/></svg>
+      </div>
+      <div>
+        <div style="font-size:17px;font-weight:800;color:#f1f5f9;letter-spacing:-.3px;">ElectroShop</div>
+        <div style="font-size:11px;color:#475569;margin-top:-1px;">Componentes & Electrónica</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div style="display:flex;align-items:center;gap:6px;padding:5px 12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:999px;">
+        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="#64748b" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2zM16 3H8l-2 4h12l-2-4z"/></svg>
+        <span style="font-size:12px;color:#64748b;font-weight:600;">{productos.length} productos</span>
+      </div>
+      <button id="btn-abrir-form" style="display:flex;align-items:center;gap:6px;padding:8px 16px;background:linear-gradient(135deg,#06b6d4,#0284c7);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;transition:opacity .2s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+        Agregar
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- ── MODAL CREAR ── -->
+<div id="modal-crear" class="modal-backdrop" style="display:none;">
+  <div class="modal-box">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 20px;border-bottom:1px solid rgba(255,255,255,.07);">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="width:28px;height:28px;background:linear-gradient(135deg,#06b6d4,#0284c7);border-radius:8px;display:flex;align-items:center;justify-content:center;">
+          <svg width="14" height="14" fill="white" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg>
         </div>
-        <div class="flex items-center gap-4">
-          <span class="text-sm text-slate-400">{productos.length} productos</span>
-          <button id="btn-abrir-form" class="py-2 px-4 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-sm font-bold transition">
-            + Agregar
-          </button>
+        <span style="font-size:15px;font-weight:700;color:#f1f5f9;">Nuevo Producto</span>
+      </div>
+      <button id="btn-cerrar-crear" style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.06);border:none;border-radius:8px;color:#94a3b8;font-size:16px;cursor:pointer;transition:background .2s;" onmouseover="this.style.background='rgba(255,255,255,.12)'" onmouseout="this.style.background='rgba(255,255,255,.06)'">&times;</button>
+    </div>
+    <form id="form-crear" style="padding:20px;display:flex;flex-direction:column;gap:12px;" autocomplete="off">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <input name="nombre" placeholder="Nombre del producto" required class="field" style="grid-column:1/-1;" />
+        <select name="categoria" required class="field">
+          <option value="">Categoría</option>
+          {CATEGORIAS.map(cat => <option value={cat}>{cat}</option>)}
+        </select>
+        <input name="precio" type="number" step="0.01" min="0" placeholder="Precio (S/)" required class="field" />
+        <input name="stock" type="number" min="0" placeholder="Stock" required class="field" />
+        <textarea name="descripcion" placeholder="Descripción (opcional)" rows="2" class="field" style="grid-column:1/-1;resize:none;"></textarea>
+      </div>
+      <div>
+        <div style="font-size:11px;color:#475569;margin-bottom:8px;font-weight:500;">IMAGEN DEL PRODUCTO</div>
+        <div class="dropzone">
+          <input name="imagen" type="file" accept="image/jpeg,image/png,image/webp,image/gif" />
+          <div class="drop-placeholder" style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+            <div style="width:40px;height:40px;background:rgba(6,182,212,.1);border-radius:10px;display:flex;align-items:center;justify-content:center;">
+              <svg width="20" height="20" fill="none" stroke="#06b6d4" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            </div>
+            <span style="font-size:12.5px;color:#64748b;">Arrastra o <span style="color:#06b6d4;font-weight:600;">selecciona</span> una imagen</span>
+            <span style="font-size:11px;color:#334155;">JPG · PNG · WEBP · GIF — máx 5 MB</span>
+          </div>
+          <img class="preview-img" style="display:none;max-height:120px;margin:0 auto;border-radius:8px;object-fit:cover;" alt="Preview" />
         </div>
       </div>
-    </header>
+      <div id="crear-error" style="display:none;font-size:13px;color:#fca5a5;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);border-radius:10px;padding:10px 14px;"></div>
+      <button type="submit" class="btn-submit btn-crear">Crear Producto</button>
+    </form>
+  </div>
+</div>
 
-    <!-- ───────── MODAL CREAR ───────── -->
-    <div id="modal-crear" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
-      <div class="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-lg my-auto">
-        <div class="flex items-center justify-between p-5 border-b border-slate-700">
-          <h2 class="text-lg font-bold text-white">Nuevo Producto</h2>
-          <button id="btn-cerrar-crear" class="text-slate-400 hover:text-white transition text-2xl leading-none">&times;</button>
+<!-- ── MODAL EDITAR ── -->
+<div id="modal-editar" class="modal-backdrop" style="display:none;">
+  <div class="modal-box">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 20px;border-bottom:1px solid rgba(255,255,255,.07);">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="width:28px;height:28px;background:linear-gradient(135deg,#38bdf8,#0ea5e9);border-radius:8px;display:flex;align-items:center;justify-content:center;">
+          <svg width="14" height="14" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
         </div>
-        <form id="form-crear" class="p-5 flex flex-col gap-4" autocomplete="off">
-          <div class="grid grid-cols-2 gap-3">
-            <input name="nombre" placeholder="Nombre del producto" required
-              class="col-span-2 p-3 rounded-lg bg-slate-800 border border-slate-600 focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400 transition text-sm" />
-
-            <select name="categoria" required
-              class="p-3 rounded-lg bg-slate-800 border border-slate-600 focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400 transition text-sm">
-              <option value="">Categoría</option>
-              {CATEGORIAS.map(cat => <option value={cat}>{cat}</option>)}
-            </select>
-
-            <input name="precio" type="number" step="0.01" min="0" placeholder="Precio (S/)" required
-              class="p-3 rounded-lg bg-slate-800 border border-slate-600 focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400 transition text-sm" />
-
-            <input name="stock" type="number" min="0" placeholder="Stock" required
-              class="p-3 rounded-lg bg-slate-800 border border-slate-600 focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400 transition text-sm" />
-
-            <textarea name="descripcion" placeholder="Descripción (opcional)" rows="2"
-              class="col-span-2 p-3 rounded-lg bg-slate-800 border border-slate-600 focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400 transition text-sm resize-none"></textarea>
+        <span style="font-size:15px;font-weight:700;color:#f1f5f9;">Editar Producto</span>
+      </div>
+      <button id="btn-cerrar-editar" style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.06);border:none;border-radius:8px;color:#94a3b8;font-size:16px;cursor:pointer;transition:background .2s;" onmouseover="this.style.background='rgba(255,255,255,.12)'" onmouseout="this.style.background='rgba(255,255,255,.06)'">&times;</button>
+    </div>
+    <form id="form-editar" style="padding:20px;display:flex;flex-direction:column;gap:12px;" autocomplete="off">
+      <input type="hidden" name="id" />
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <input name="nombre" placeholder="Nombre del producto" required class="field" style="grid-column:1/-1;" />
+        <select name="categoria" required class="field">
+          <option value="">Categoría</option>
+          {CATEGORIAS.map(cat => <option value={cat}>{cat}</option>)}
+        </select>
+        <input name="precio" type="number" step="0.01" min="0" placeholder="Precio (S/)" required class="field" />
+        <input name="stock" type="number" min="0" placeholder="Stock" required class="field" />
+        <textarea name="descripcion" placeholder="Descripción" rows="2" class="field" style="grid-column:1/-1;resize:none;"></textarea>
+      </div>
+      <div>
+        <div style="font-size:11px;color:#475569;margin-bottom:8px;font-weight:500;">CAMBIAR IMAGEN</div>
+        <div id="editar-img-actual" style="display:none;position:relative;width:fit-content;margin-bottom:10px;">
+          <img id="editar-img-preview" style="height:80px;border-radius:8px;object-fit:cover;border:1px solid rgba(255,255,255,.08);" alt="Actual" />
+          <button type="button" id="btn-quitar-imagen" style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;background:#ef4444;border:none;border-radius:50%;color:white;font-size:13px;display:flex;align-items:center;justify-content:center;cursor:pointer;line-height:1;">&times;</button>
+        </div>
+        <div class="dropzone">
+          <input name="imagen" id="editar-imagen-input" type="file" accept="image/jpeg,image/png,image/webp,image/gif" />
+          <div class="drop-placeholder" style="display:flex;align-items:center;justify-content:center;gap:6px;">
+            <svg width="15" height="15" fill="none" stroke="#475569" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            <span style="font-size:12px;color:#475569;">Nueva imagen (opcional)</span>
           </div>
+          <img class="preview-img" style="display:none;max-height:80px;margin:0 auto;border-radius:8px;object-fit:cover;" alt="Preview" />
+        </div>
+      </div>
+      <div id="editar-error" style="display:none;font-size:13px;color:#fca5a5;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);border-radius:10px;padding:10px 14px;"></div>
+      <button type="submit" class="btn-submit btn-editar">Guardar Cambios</button>
+    </form>
+  </div>
+</div>
 
-          <div>
-            <label class="block text-xs text-slate-400 mb-2">Imagen (JPG · PNG · WEBP · GIF — máx 5 MB)</label>
-            <div class="image-dropzone relative border-2 border-dashed border-slate-600 hover:border-cyan-500 rounded-xl p-5 text-center transition cursor-pointer">
-              <input name="imagen" type="file" accept="image/jpeg,image/png,image/webp,image/gif"
-                class="absolute inset-0 opacity-0 w-full h-full cursor-pointer" />
-              <div class="drop-placeholder">
-                <svg class="mx-auto mb-2 w-8 h-8 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                <p class="text-sm text-slate-500">Arrastra una imagen o <span class="text-cyan-400">haz clic</span></p>
-              </div>
-              <img class="preview-img hidden mx-auto max-h-32 rounded-lg object-cover" alt="Preview" />
+<!-- ── MAIN ── -->
+<main style="max-width:1280px;margin:0 auto;padding:32px 20px;">
+
+  {envMissing && (
+    <div style="padding:14px 16px;border-radius:12px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);color:#fbbf24;font-size:13px;margin-bottom:20px;">
+      <strong>Variables de entorno no configuradas.</strong> Verifica el archivo <code>.env.local</code>.
+    </div>
+  )}
+  {supabaseError && !envMissing && (
+    <div style="padding:14px 16px;border-radius:12px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.3);color:#fca5a5;font-size:13px;margin-bottom:20px;">
+      <strong>Error al cargar productos:</strong> {supabaseError.message}
+    </div>
+  )}
+
+  <!-- Filtros -->
+  {productos.length > 0 && (
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:28px;">
+      <button class="filtro-btn active" data-cat="todas">
+        <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24"><path d="M3 4h18v2.586l-7 7V20l-4-2v-6.414L3 6.586V4z"/></svg>
+        Todas
+      </button>
+      {[...new Set(productos.map((p:any) => p.categoria).filter(Boolean))].map((cat:any) => {
+        const c = CAT[cat] ?? DEF;
+        return (
+          <button class="filtro-btn" data-cat={cat} style={`color:inherit;`}>
+            <span style={`width:7px;height:7px;border-radius:50%;flex-shrink:0;`} class={c.dot}></span>
+            {cat}
+          </button>
+        );
+      })}
+    </div>
+  )}
+
+  <!-- Sin productos -->
+  {!envMissing && productos.length === 0 && (
+    <div style="text-align:center;padding:80px 20px;color:#334155;">
+      <div style="width:72px;height:72px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:20px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
+        <svg width="32" height="32" fill="none" stroke="#475569" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2zM16 3H8l-2 4h12l-2-4z"/></svg>
+      </div>
+      <p style="font-size:16px;font-weight:600;color:#475569;">Sin productos registrados</p>
+      <p style="font-size:13px;margin-top:4px;">Haz clic en <strong style="color:#06b6d4;">Agregar</strong> para añadir el primero</p>
+    </div>
+  )}
+
+  <!-- Grid -->
+  <div id="grid-productos" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:20px;">
+    {productos.map((producto:any) => {
+      const c = CAT[producto.categoria] ?? DEF;
+      const dp = JSON.stringify({ id:producto.id, nombre:producto.nombre, categoria:producto.categoria, precio:producto.precio, stock:producto.stock, descripcion:producto.descripcion, imagen_url:producto.imagen_url });
+      return (
+        <article
+          class={`product-card producto-card rounded-2xl border ${c.border} ${c.glow} hover:shadow-2xl overflow-hidden flex flex-col group`}
+          data-categoria={producto.categoria || ''}
+          data-producto={dp}
+        >
+          <!-- imagen -->
+          <div class="img-wrap">
+            {producto.imagen_url
+              ? <img src={producto.imagen_url} alt={producto.nombre} class="img-producto" loading="lazy" />
+              : <div class="img-placeholder">
+                  <svg width="40" height="40" fill="none" stroke="currentColor" stroke-width="1" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3" stroke-dasharray="3 2"/><circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/><path stroke-linecap="round" stroke-linejoin="round" d="M21 15l-5-5L5 21"/></svg>
+                  <span style="font-size:11px;font-weight:500;">Sin imagen</span>
+                </div>
+            }
+            <!-- badge categoría -->
+            <div class={`cat-badge ${c.badge} ${c.badgeText}`}>
+              <span class={`cat-dot ${c.dot}`}></span>
+              {producto.categoria || 'General'}
             </div>
           </div>
 
-          <div id="crear-error" class="hidden text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg p-3"></div>
+          <!-- info -->
+          <div style="padding:14px 16px;display:flex;flex-direction:column;flex:1;gap:6px;">
+            <h3 style="font-size:14px;font-weight:700;color:#f1f5f9;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">{producto.nombre}</h3>
+            <p style="font-size:12px;color:#475569;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;flex:1;">{producto.descripcion || 'Sin descripción'}</p>
 
-          <button type="submit"
-            class="w-full py-3 rounded-lg bg-cyan-500 hover:bg-cyan-400 active:bg-cyan-600 text-slate-950 font-bold transition text-sm">
-            Crear Producto
-          </button>
-        </form>
-      </div>
-    </div>
+            <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-top:4px;">
+              <div>
+                <div style="font-size:10px;color:#475569;font-weight:500;letter-spacing:.04em;margin-bottom:2px;">PRECIO</div>
+                <span class="price-tag">S/ {Number(producto.precio).toFixed(2)}</span>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-size:10px;color:#475569;font-weight:500;letter-spacing:.04em;margin-bottom:2px;">STOCK</div>
+                <div style="display:flex;align-items:center;gap:4px;">
+                  <span style={`width:7px;height:7px;border-radius:50%;flex-shrink:0;background:${producto.stock > 0 ? '#34d399' : '#f87171'};`}></span>
+                  <span style={`font-size:13px;font-weight:700;color:${producto.stock > 0 ? '#e2e8f0' : '#f87171'};`}>{producto.stock} ud.</span>
+                </div>
+              </div>
+            </div>
 
-    <!-- ───────── MODAL EDITAR ───────── -->
-    <div id="modal-editar" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
-      <div class="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-lg my-auto">
-        <div class="flex items-center justify-between p-5 border-b border-slate-700">
-          <h2 class="text-lg font-bold text-white">Editar Producto</h2>
-          <button id="btn-cerrar-editar" class="text-slate-400 hover:text-white transition text-2xl leading-none">&times;</button>
-        </div>
-        <form id="form-editar" class="p-5 flex flex-col gap-4" autocomplete="off">
-          <input type="hidden" name="id" />
-          <div class="grid grid-cols-2 gap-3">
-            <input name="nombre" placeholder="Nombre del producto" required
-              class="col-span-2 p-3 rounded-lg bg-slate-800 border border-slate-600 focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400 transition text-sm" />
-
-            <select name="categoria" required
-              class="p-3 rounded-lg bg-slate-800 border border-slate-600 focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400 transition text-sm">
-              <option value="">Categoría</option>
-              {CATEGORIAS.map(cat => <option value={cat}>{cat}</option>)}
-            </select>
-
-            <input name="precio" type="number" step="0.01" min="0" placeholder="Precio (S/)" required
-              class="p-3 rounded-lg bg-slate-800 border border-slate-600 focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400 transition text-sm" />
-
-            <input name="stock" type="number" min="0" placeholder="Stock" required
-              class="p-3 rounded-lg bg-slate-800 border border-slate-600 focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400 transition text-sm" />
-
-            <textarea name="descripcion" placeholder="Descripción (opcional)" rows="2"
-              class="col-span-2 p-3 rounded-lg bg-slate-800 border border-slate-600 focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400 transition text-sm resize-none"></textarea>
-          </div>
-
-          <div>
-            <label class="block text-xs text-slate-400 mb-2">Cambiar imagen (opcional)</label>
-            <!-- imagen actual -->
-            <div id="editar-img-actual" class="hidden mb-3 relative w-fit">
-              <img id="editar-img-preview" class="h-28 rounded-lg object-cover border border-slate-700" alt="Imagen actual" />
-              <button type="button" id="btn-quitar-imagen"
-                class="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-red-500 hover:bg-red-400 text-white text-xs flex items-center justify-center leading-none transition">
-                &times;
+            <div style="display:flex;gap:8px;margin-top:8px;">
+              <button class="btn-action btn-del" data-delete-id={producto.id}>
+                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                Eliminar
+              </button>
+              <button class="btn-action btn-edit" data-update-id={producto.id}>
+                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                Editar
               </button>
             </div>
-            <div class="image-dropzone relative border-2 border-dashed border-slate-600 hover:border-cyan-500 rounded-xl p-5 text-center transition cursor-pointer">
-              <input name="imagen" id="editar-imagen-input" type="file" accept="image/jpeg,image/png,image/webp,image/gif"
-                class="absolute inset-0 opacity-0 w-full h-full cursor-pointer" />
-              <div class="drop-placeholder">
-                <p class="text-sm text-slate-500">Arrastra una imagen nueva o <span class="text-cyan-400">haz clic</span></p>
-              </div>
-              <img class="preview-img hidden mx-auto max-h-24 rounded-lg object-cover" alt="Nueva imagen" />
-            </div>
           </div>
+        </article>
+      );
+    })}
+  </div>
+</main>
 
-          <div id="editar-error" class="hidden text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg p-3"></div>
+<script>
+  import imageCompression from 'browser-image-compression';
 
-          <button type="submit"
-            class="w-full py-3 rounded-lg bg-sky-500 hover:bg-sky-400 active:bg-sky-600 text-slate-950 font-bold transition text-sm">
-            Guardar Cambios
-          </button>
-        </form>
-      </div>
-    </div>
+  const emojiRegex = /[\p{Emoji}]/u;
 
-    <!-- ───────── MAIN ───────── -->
-    <main class="max-w-7xl mx-auto px-4 py-8 space-y-6">
+  function showErr(el: HTMLElement, msg: string) { el.textContent = msg; el.style.display = 'block'; }
+  function hideErr(el: HTMLElement) { el.style.display = 'none'; }
 
-      {envMissing && (
-        <div class="p-4 rounded-xl bg-amber-500/10 border border-amber-500 text-amber-400 text-sm">
-          <strong>Variables de entorno no configuradas.</strong> Verifica el archivo <code>.env.local</code>.
-        </div>
-      )}
+  async function comprimirImagen(file: File): Promise<File | Blob> {
+    try {
+      return await imageCompression(file, { maxSizeMB: 0.8, maxWidthOrHeight: 1024, useWebWorker: true, initialQuality: 0.8 });
+    } catch { return file; }
+  }
 
-      {supabaseError && !envMissing && (
-        <div class="p-4 rounded-xl bg-red-500/10 border border-red-500 text-red-400 text-sm">
-          <strong>Error al cargar productos:</strong> {supabaseError.message}
-        </div>
-      )}
+  async function subirImagen(file: File | Blob, productId: string, original: File): Promise<string | null> {
+    const ext = original.name.split('.').pop() || 'jpg';
+    const fd = new FormData();
+    fd.append('file', file, `imagen.${ext}`);
+    fd.append('productId', productId);
+    const res = await fetch('/api/upload', { method: 'POST', body: fd });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al subir imagen');
+    return data.url ?? null;
+  }
 
-      <!-- Filtros -->
-      {productos.length > 0 && (
-        <div class="flex flex-wrap gap-2">
-          <button class="filtro-btn active px-3 py-1.5 rounded-full text-xs font-semibold transition" data-cat="todas">Todas</button>
-          {[...new Set(productos.map((p: any) => p.categoria).filter(Boolean))].map((cat: any) => {
-            const col = CATEGORIA_COLORES[cat] ?? DEFAULT_COLOR;
-            return (
-              <button class={`filtro-btn px-3 py-1.5 rounded-full text-xs font-semibold transition ${col.badge} ${col.badgeText}`} data-cat={cat}>{cat}</button>
-            );
-          })}
-        </div>
-      )}
+  function setupDropzone(dz: Element) {
+    const input = dz.querySelector('input[type="file"]') as HTMLInputElement;
+    const placeholder = dz.querySelector('.drop-placeholder') as HTMLElement;
+    const preview = dz.querySelector('.preview-img') as HTMLImageElement;
+    input.addEventListener('change', () => {
+      const f = input.files?.[0];
+      if (f) { preview.src = URL.createObjectURL(f); preview.style.display = 'block'; placeholder.style.display = 'none'; }
+      else { preview.style.display = 'none'; placeholder.style.display = 'flex'; }
+    });
+  }
 
-      <!-- Sin productos -->
-      {!envMissing && productos.length === 0 && (
-        <div class="text-center py-20 text-slate-500">
-          <p class="text-5xl mb-4">📦</p>
-          <p class="text-lg font-medium">No hay productos registrados</p>
-          <p class="text-sm mt-1">Haz clic en "+ Agregar" para añadir el primero</p>
-        </div>
-      )}
+  // ── Modal crear ──
+  const modalCrear = document.getElementById('modal-crear')!;
+  const formCrear  = document.getElementById('form-crear') as HTMLFormElement;
+  const crearErr   = document.getElementById('crear-error')!;
+  document.getElementById('btn-abrir-form')!.addEventListener('click', () => modalCrear.style.display = 'flex');
+  document.getElementById('btn-cerrar-crear')!.addEventListener('click', () => modalCrear.style.display = 'none');
+  modalCrear.addEventListener('click', e => { if (e.target === modalCrear) modalCrear.style.display = 'none'; });
+  modalCrear.querySelectorAll('.dropzone').forEach(setupDropzone);
 
-      <!-- Grid -->
-      <div id="grid-productos" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-        {productos.map((producto: any) => {
-          const col = CATEGORIA_COLORES[producto.categoria] ?? DEFAULT_COLOR;
-          const dataProducto = JSON.stringify({
-            id: producto.id,
-            nombre: producto.nombre,
-            categoria: producto.categoria,
-            precio: producto.precio,
-            stock: producto.stock,
-            descripcion: producto.descripcion,
-            imagen_url: producto.imagen_url,
-          });
-          return (
-            <article
-              class={`group producto-card bg-slate-900 rounded-2xl border ${col.border} ${col.accent} hover:shadow-xl hover:shadow-black/30 transition-all duration-300 overflow-hidden flex flex-col`}
-              data-categoria={producto.categoria || ''}
-              data-producto={dataProducto}
-            >
-              <!-- Imagen -->
-              <div class="aspect-[4/3] bg-slate-800 overflow-hidden relative">
-                {producto.imagen_url ? (
-                  <img
-                    src={producto.imagen_url}
-                    alt={producto.nombre}
-                    class="w-full h-full object-cover group-hover:scale-105 transition duration-500 img-producto"
-                    loading="lazy"
-                    crossorigin="anonymous"
-                  />
-                ) : (
-                  <div class="img-placeholder w-full h-full flex items-center justify-center text-slate-700">
-                    <svg class="w-14 h-14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                  </div>
-                )}
-                <span class={`absolute top-2 left-2 text-xs font-semibold px-2.5 py-1 rounded-full ${col.badge} ${col.badgeText} backdrop-blur-sm`}>
-                  {producto.categoria || 'General'}
-                </span>
-              </div>
-
-              <!-- Info -->
-              <div class="p-4 flex flex-col flex-1">
-                <h3 class="text-white font-bold text-base leading-snug line-clamp-2 mb-1">{producto.nombre}</h3>
-                <p class="text-xs text-slate-500 line-clamp-2 flex-1">{producto.descripcion || 'Sin descripción'}</p>
-
-                <div class="mt-3 flex items-end justify-between">
-                  <div>
-                    <p class="text-xs text-slate-500 leading-none mb-0.5">Precio</p>
-                    <span class="text-xl font-extrabold text-emerald-400">S/ {Number(producto.precio)?.toFixed(2)}</span>
-                  </div>
-                  <div class="text-right">
-                    <p class="text-xs text-slate-500 leading-none mb-0.5">Stock</p>
-                    <span class={`text-sm font-bold ${producto.stock > 0 ? 'text-slate-300' : 'text-red-400'}`}>{producto.stock} ud.</span>
-                  </div>
-                </div>
-
-                <div class="mt-4 flex gap-2">
-                  <button class="btn-delete flex-1 py-2 rounded-lg text-xs font-semibold bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition"
-                    data-delete-id={producto.id}>Eliminar</button>
-                  <button class="btn-edit flex-1 py-2 rounded-lg text-xs font-semibold bg-sky-500/10 text-sky-400 border border-sky-500/20 hover:bg-sky-500/20 transition"
-                    data-update-id={producto.id}>Editar</button>
-                </div>
-              </div>
-            </article>
-          );
-        })}
-      </div>
-    </main>
-
-    <style>
-      .filtro-btn {
-        background: rgba(255,255,255,0.05);
-        color: #94a3b8;
-        border: 1px solid rgba(255,255,255,0.08);
+  formCrear.addEventListener('submit', async e => {
+    e.preventDefault();
+    hideErr(crearErr);
+    const nombre = (formCrear.querySelector('input[name="nombre"]') as HTMLInputElement).value.trim();
+    if (emojiRegex.test(nombre)) { showErr(crearErr, 'El nombre no puede contener emojis'); return; }
+    const btn = formCrear.querySelector('button[type="submit"]') as HTMLButtonElement;
+    btn.disabled = true; btn.textContent = 'Creando...';
+    const fd = new FormData(formCrear);
+    const imagenFile = fd.get('imagen') as File | null;
+    try {
+      const res = await fetch('/api/productos', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nombre, categoria: fd.get('categoria'), descripcion: fd.get('descripcion'), precio: Number(fd.get('precio')), stock: Number(fd.get('stock')) }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'No se pudo crear el producto');
+      if (imagenFile && imagenFile.size > 0) {
+        btn.textContent = 'Subiendo imagen...';
+        const compressed = await comprimirImagen(imagenFile);
+        const url = await subirImagen(compressed, data.id, imagenFile);
+        if (url) await fetch(`/api/productos/${data.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imagen_url: url }) });
       }
-      .filtro-btn:hover { background: rgba(255,255,255,0.1); }
-      .filtro-btn.active { background:#06b6d4; color:#0f172a; border-color:#06b6d4; }
-    </style>
+      modalCrear.style.display = 'none';
+      formCrear.reset();
+      location.reload();
+    } catch (err: any) { showErr(crearErr, err.message); }
+    finally { btn.disabled = false; btn.textContent = 'Crear Producto'; }
+  });
 
-    <script>
-      import imageCompression from 'browser-image-compression';
+  // ── Modal editar ──
+  const modalEditar     = document.getElementById('modal-editar')!;
+  const formEditar      = document.getElementById('form-editar') as HTMLFormElement;
+  const editarErr       = document.getElementById('editar-error')!;
+  const editarImgActual = document.getElementById('editar-img-actual')!;
+  const editarImgPrev   = document.getElementById('editar-img-preview') as HTMLImageElement;
+  let quitarImagen = false;
 
-      const emojiRegex = /[\p{Emoji}]/u;
+  document.getElementById('btn-cerrar-editar')!.addEventListener('click', () => modalEditar.style.display = 'none');
+  modalEditar.addEventListener('click', e => { if (e.target === modalEditar) modalEditar.style.display = 'none'; });
+  modalEditar.querySelectorAll('.dropzone').forEach(setupDropzone);
 
-      // ── Helpers ──────────────────────────────────────────────
-      function showError(el: HTMLElement, msg: string) {
-        el.textContent = msg;
-        el.classList.remove('hidden');
+  document.getElementById('btn-quitar-imagen')!.addEventListener('click', () => {
+    quitarImagen = true;
+    editarImgActual.style.display = 'none';
+  });
+
+  document.querySelectorAll('[data-update-id]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const card = btn.closest('[data-producto]') as HTMLElement;
+      const p = JSON.parse(card.dataset.producto!);
+      (formEditar.querySelector('input[name="id"]') as HTMLInputElement).value = p.id;
+      (formEditar.querySelector('input[name="nombre"]') as HTMLInputElement).value = p.nombre ?? '';
+      (formEditar.querySelector('select[name="categoria"]') as HTMLSelectElement).value = p.categoria ?? '';
+      (formEditar.querySelector('input[name="precio"]') as HTMLInputElement).value = p.precio ?? '';
+      (formEditar.querySelector('input[name="stock"]') as HTMLInputElement).value = p.stock ?? '';
+      (formEditar.querySelector('textarea[name="descripcion"]') as HTMLTextAreaElement).value = p.descripcion ?? '';
+      quitarImagen = false;
+      if (p.imagen_url) { editarImgPrev.src = p.imagen_url; editarImgActual.style.display = 'block'; }
+      else { editarImgActual.style.display = 'none'; }
+      const ei = document.getElementById('editar-imagen-input') as HTMLInputElement;
+      ei.value = '';
+      const prev = modalEditar.querySelector('.preview-img') as HTMLImageElement;
+      const ph = modalEditar.querySelector('.drop-placeholder') as HTMLElement;
+      prev.style.display = 'none'; ph.style.display = 'flex';
+      hideErr(editarErr);
+      modalEditar.style.display = 'flex';
+    });
+  });
+
+  formEditar.addEventListener('submit', async e => {
+    e.preventDefault();
+    hideErr(editarErr);
+    const id     = (formEditar.querySelector('input[name="id"]') as HTMLInputElement).value;
+    const nombre = (formEditar.querySelector('input[name="nombre"]') as HTMLInputElement).value.trim();
+    if (emojiRegex.test(nombre)) { showErr(editarErr, 'El nombre no puede contener emojis'); return; }
+    const btn = formEditar.querySelector('button[type="submit"]') as HTMLButtonElement;
+    btn.disabled = true; btn.textContent = 'Guardando...';
+    const fd = new FormData(formEditar);
+    const imagenFile = fd.get('imagen') as File | null;
+    try {
+      const payload: Record<string, any> = { nombre, categoria: fd.get('categoria'), descripcion: fd.get('descripcion'), precio: Number(fd.get('precio')), stock: Number(fd.get('stock')) };
+      if (quitarImagen) payload.imagen_url = null;
+      if (imagenFile && imagenFile.size > 0) {
+        btn.textContent = 'Subiendo imagen...';
+        const compressed = await comprimirImagen(imagenFile);
+        const url = await subirImagen(compressed, id, imagenFile);
+        if (url) payload.imagen_url = url;
       }
-      function hideError(el: HTMLElement) { el.classList.add('hidden'); }
+      const res = await fetch(`/api/productos/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'No se pudo actualizar');
+      modalEditar.style.display = 'none';
+      location.reload();
+    } catch (err: any) { showErr(editarErr, err.message); }
+    finally { btn.disabled = false; btn.textContent = 'Guardar Cambios'; }
+  });
 
-      async function comprimirImagen(file: File): Promise<File | Blob> {
-        try {
-          return await imageCompression(file, {
-            maxSizeMB: 0.8,
-            maxWidthOrHeight: 1024,
-            useWebWorker: true,
-            initialQuality: 0.8,
-          });
-        } catch {
-          return file; // si falla la compresión, usar el original
-        }
-      }
-
-      async function subirImagen(file: File | Blob, productId: string, originalFile: File): Promise<string | null> {
-        const ext = originalFile.name.split('.').pop() || 'jpg';
-        const fileName = `imagen.${ext}`;
-
-        const imgFormData = new FormData();
-        imgFormData.append('file', file, fileName);
-        imgFormData.append('productId', productId);
-
-        const res = await fetch('/api/upload', { method: 'POST', body: imgFormData });
-        const data = await res.json();
-
-        if (!res.ok) throw new Error(data.error || 'Error al subir la imagen');
-        return data.url ?? null;
-      }
-
-      function setupDropzone(dropzone: Element) {
-        const input = dropzone.querySelector('input[type="file"]') as HTMLInputElement;
-        const placeholder = dropzone.querySelector('.drop-placeholder') as HTMLElement;
-        const preview = dropzone.querySelector('.preview-img') as HTMLImageElement;
-
-        input.addEventListener('change', () => {
-          const file = input.files?.[0];
-          if (file) {
-            preview.src = URL.createObjectURL(file);
-            preview.classList.remove('hidden');
-            placeholder.classList.add('hidden');
-          } else {
-            preview.classList.add('hidden');
-            placeholder.classList.remove('hidden');
-          }
-        });
-      }
-
-      // ── Modal helpers ──────────────────────────────────────────
-      function abrirModal(modal: HTMLElement) { modal.classList.remove('hidden'); }
-      function cerrarModal(modal: HTMLElement) { modal.classList.add('hidden'); }
-
-      // ── Modal CREAR ───────────────────────────────────────────
-      const modalCrear = document.getElementById('modal-crear')!;
-      const formCrear  = document.getElementById('form-crear') as HTMLFormElement;
-      const crearError = document.getElementById('crear-error')!;
-
-      document.getElementById('btn-abrir-form')!.addEventListener('click', () => abrirModal(modalCrear));
-      document.getElementById('btn-cerrar-crear')!.addEventListener('click', () => cerrarModal(modalCrear));
-      modalCrear.addEventListener('click', (e) => { if (e.target === modalCrear) cerrarModal(modalCrear); });
-
-      modalCrear.querySelectorAll('.image-dropzone').forEach(setupDropzone);
-
-      const crearNombreInput = formCrear.querySelector('input[name="nombre"]') as HTMLInputElement;
-      crearNombreInput.addEventListener('input', () => {
-        crearNombreInput.style.borderColor = emojiRegex.test(crearNombreInput.value) ? '#ef4444' : '';
-        crearNombreInput.setCustomValidity(emojiRegex.test(crearNombreInput.value) ? 'Sin emojis' : '');
+  // ── Filtros ──
+  document.querySelectorAll('.filtro-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filtro-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const cat = (btn as HTMLElement).dataset.cat;
+      document.querySelectorAll<HTMLElement>('.producto-card').forEach(card => {
+        card.style.display = (cat === 'todas' || card.dataset.categoria === cat) ? '' : 'none';
       });
+    });
+  });
 
-      formCrear.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        hideError(crearError);
+  // ── Eliminar ──
+  document.querySelectorAll('[data-delete-id]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('¿Eliminar este producto?')) return;
+      const id = (btn as HTMLElement).dataset.deleteId!;
+      const b = btn as HTMLButtonElement;
+      b.disabled = true; b.textContent = '...';
+      const res = await fetch(`/api/productos/${id}`, { method: 'DELETE' });
+      if (res.status === 204) { location.reload(); }
+      else { const err = await res.json(); alert(err.error || 'Error al eliminar'); b.disabled = false; b.textContent = 'Eliminar'; }
+    });
+  });
 
-        const nombre = (formCrear.querySelector('input[name="nombre"]') as HTMLInputElement).value.trim();
-        if (emojiRegex.test(nombre)) { showError(crearError, 'El nombre no puede contener emojis'); return; }
+  // ── Imágenes rotas → placeholder ──
+  document.querySelectorAll<HTMLImageElement>('.img-producto').forEach(img => {
+    img.addEventListener('error', () => {
+      const wrap = img.parentElement!;
+      img.remove();
+      wrap.insertAdjacentHTML('afterbegin', `<div class="img-placeholder"><svg width="40" height="40" fill="none" stroke="currentColor" stroke-width="1" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3" stroke-dasharray="3 2"/><circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/><path stroke-linecap="round" stroke-linejoin="round" d="M21 15l-5-5L5 21"/></svg><span style="font-size:11px;font-weight:500;">Sin imagen</span></div>`);
+    });
+  });
+</script>
 
-        const submitBtn = formCrear.querySelector('button[type="submit"]') as HTMLButtonElement;
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Creando...';
-
-        const fd = new FormData(formCrear);
-        const imagenFile = fd.get('imagen') as File | null;
-
-        try {
-          // 1. Crear producto
-          const res = await fetch('/api/productos', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              nombre,
-              categoria: fd.get('categoria'),
-              descripcion: fd.get('descripcion'),
-              precio: Number(fd.get('precio')),
-              stock: Number(fd.get('stock')),
-            }),
-          });
-          const data = await res.json();
-          if (!res.ok) throw new Error(data.error || 'No se pudo crear el producto');
-
-          // 2. Subir imagen
-          if (imagenFile && imagenFile.size > 0) {
-            submitBtn.textContent = 'Subiendo imagen...';
-            const compressed = await comprimirImagen(imagenFile);
-            const url = await subirImagen(compressed, data.id, imagenFile);
-            if (url) {
-              await fetch(`/api/productos/${data.id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ imagen_url: url }),
-              });
-            }
-          }
-
-          cerrarModal(modalCrear);
-          formCrear.reset();
-          location.reload();
-        } catch (err: any) {
-          showError(crearError, err.message);
-        } finally {
-          submitBtn.disabled = false;
-          submitBtn.textContent = 'Crear Producto';
-        }
-      });
-
-      // ── Modal EDITAR ──────────────────────────────────────────
-      const modalEditar    = document.getElementById('modal-editar')!;
-      const formEditar     = document.getElementById('form-editar') as HTMLFormElement;
-      const editarError    = document.getElementById('editar-error')!;
-      const editarImgActual= document.getElementById('editar-img-actual')!;
-      const editarImgPrev  = document.getElementById('editar-img-preview') as HTMLImageElement;
-      const btnQuitarImg   = document.getElementById('btn-quitar-imagen')!;
-      let editarQuitarImagen = false;
-
-      document.getElementById('btn-cerrar-editar')!.addEventListener('click', () => cerrarModal(modalEditar));
-      modalEditar.addEventListener('click', (e) => { if (e.target === modalEditar) cerrarModal(modalEditar); });
-
-      modalEditar.querySelectorAll('.image-dropzone').forEach(setupDropzone);
-
-      btnQuitarImg.addEventListener('click', () => {
-        editarQuitarImagen = true;
-        editarImgActual.classList.add('hidden');
-      });
-
-      document.querySelectorAll('[data-update-id]').forEach(button => {
-        button.addEventListener('click', () => {
-          const card = button.closest('[data-producto]') as HTMLElement;
-          const producto = JSON.parse(card.dataset.producto!);
-
-          // pre-llenar campos
-          (formEditar.querySelector('input[name="id"]') as HTMLInputElement).value = producto.id;
-          (formEditar.querySelector('input[name="nombre"]') as HTMLInputElement).value = producto.nombre ?? '';
-          (formEditar.querySelector('select[name="categoria"]') as HTMLSelectElement).value = producto.categoria ?? '';
-          (formEditar.querySelector('input[name="precio"]') as HTMLInputElement).value = producto.precio ?? '';
-          (formEditar.querySelector('input[name="stock"]') as HTMLInputElement).value = producto.stock ?? '';
-          (formEditar.querySelector('textarea[name="descripcion"]') as HTMLTextAreaElement).value = producto.descripcion ?? '';
-
-          // imagen actual
-          editarQuitarImagen = false;
-          if (producto.imagen_url) {
-            editarImgPrev.src = producto.imagen_url;
-            editarImgActual.classList.remove('hidden');
-          } else {
-            editarImgActual.classList.add('hidden');
-          }
-
-          // limpiar nueva imagen
-          const editarInput = document.getElementById('editar-imagen-input') as HTMLInputElement;
-          editarInput.value = '';
-          const prevImg = modalEditar.querySelector('.preview-img') as HTMLImageElement;
-          const placeholder = modalEditar.querySelector('.drop-placeholder') as HTMLElement;
-          prevImg.classList.add('hidden');
-          placeholder.classList.remove('hidden');
-
-          hideError(editarError);
-          abrirModal(modalEditar);
-        });
-      });
-
-      formEditar.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        hideError(editarError);
-
-        const id     = (formEditar.querySelector('input[name="id"]') as HTMLInputElement).value;
-        const nombre = (formEditar.querySelector('input[name="nombre"]') as HTMLInputElement).value.trim();
-        if (emojiRegex.test(nombre)) { showError(editarError, 'El nombre no puede contener emojis'); return; }
-
-        const submitBtn = formEditar.querySelector('button[type="submit"]') as HTMLButtonElement;
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Guardando...';
-
-        const fd = new FormData(formEditar);
-        const imagenFile = fd.get('imagen') as File | null;
-
-        try {
-          const payload: Record<string, any> = {
-            nombre,
-            categoria: fd.get('categoria'),
-            descripcion: fd.get('descripcion'),
-            precio: Number(fd.get('precio')),
-            stock: Number(fd.get('stock')),
-          };
-
-          if (editarQuitarImagen) payload.imagen_url = null;
-
-          // Subir nueva imagen si se seleccionó
-          if (imagenFile && imagenFile.size > 0) {
-            submitBtn.textContent = 'Subiendo imagen...';
-            const compressed = await comprimirImagen(imagenFile);
-            const url = await subirImagen(compressed, id, imagenFile);
-            if (url) payload.imagen_url = url;
-          }
-
-          const res = await fetch(`/api/productos/${id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-          });
-          const data = await res.json();
-          if (!res.ok) throw new Error(data.error || 'No se pudo actualizar');
-
-          cerrarModal(modalEditar);
-          location.reload();
-        } catch (err: any) {
-          showError(editarError, err.message);
-        } finally {
-          submitBtn.disabled = false;
-          submitBtn.textContent = 'Guardar Cambios';
-        }
-      });
-
-      // ── Filtros ───────────────────────────────────────────────
-      document.querySelectorAll('.filtro-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          document.querySelectorAll('.filtro-btn').forEach(b => b.classList.remove('active'));
-          btn.classList.add('active');
-          const cat = (btn as HTMLElement).dataset.cat;
-          document.querySelectorAll<HTMLElement>('.producto-card').forEach(card => {
-            card.style.display = (cat === 'todas' || card.dataset.categoria === cat) ? '' : 'none';
-          });
-        });
-      });
-
-      // ── Eliminar ──────────────────────────────────────────────
-      document.querySelectorAll('[data-delete-id]').forEach(button => {
-        button.addEventListener('click', async () => {
-          if (!confirm('¿Seguro que deseas eliminar este producto?')) return;
-          const id = (button as HTMLElement).dataset.deleteId!;
-          const btn = button as HTMLButtonElement;
-          btn.disabled = true;
-          btn.textContent = 'Eliminando...';
-          const res = await fetch(`/api/productos/${id}`, { method: 'DELETE' });
-          if (res.status === 204) {
-            location.reload();
-          } else {
-            const err = await res.json();
-            alert('Error: ' + (err.error || 'No se pudo eliminar'));
-            btn.disabled = false;
-            btn.textContent = 'Eliminar';
-          }
-        });
-      });
-
-      // ── Fix imágenes rotas: mostrar placeholder ───────────────
-      document.querySelectorAll<HTMLImageElement>('.img-producto').forEach(img => {
-        img.addEventListener('error', () => {
-          const wrapper = img.parentElement!;
-          img.remove();
-          const ph = document.createElement('div');
-          ph.className = 'w-full h-full flex items-center justify-center text-slate-700';
-          ph.innerHTML = `<svg class="w-14 h-14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>`;
-          wrapper.prepend(ph);
-        });
-      });
-    </script>
-
-  </body>
+</body>
 </html>
