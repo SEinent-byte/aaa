@@ -147,6 +147,8 @@ if (!supabaseUrl || !supabaseKey) {
       background: rgba(255,255,255,.04);
       color: #94a3b8;
       cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
       transition: background .2s, color .2s, border-color .2s, transform .15s;
     }
     .filtro-btn:hover { background: rgba(255,255,255,.08); color: #e2e8f0; }
@@ -748,6 +750,7 @@ if (!supabaseUrl || !supabaseKey) {
   function hideErr(el: HTMLElement) { el.style.display = 'none'; }
 
   async function comprimirImagen(file: File): Promise<File | Blob> {
+    if (file.type === 'image/gif') return file; // los GIFs no se comprimen — pierden la animación
     try {
       return await imageCompression(file, { maxSizeMB: 0.8, maxWidthOrHeight: 1024, useWebWorker: true, initialQuality: 0.8 });
     } catch { return file; }
