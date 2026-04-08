@@ -467,6 +467,27 @@ if (!supabaseUrl || !supabaseKey) {
 </head>
 <body>
 
+<!-- ── SPLASH SCREEN ── -->
+<div id="splash-screen" style="position:fixed;inset:0;z-index:99999;background:#000d02;background-image:linear-gradient(rgba(0,255,65,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,65,.03) 1px,transparent 1px);background-size:40px 40px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:opacity .6s ease;">
+  <style>
+    @keyframes splashPulse{0%,100%{box-shadow:0 0 20px rgba(0,255,65,.3)}50%{box-shadow:0 0 55px rgba(0,255,65,.65)}}
+    @keyframes splashBlink{0%,49%{border-color:rgba(0,255,65,.3);box-shadow:0 0 10px rgba(0,255,65,.1)}50%,100%{border-color:rgba(0,255,65,.7);box-shadow:0 0 28px rgba(0,255,65,.25)}}
+    @keyframes splashCursor{0%,49%{opacity:1}50%,100%{opacity:0}}
+    @keyframes splashFadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+    #splash-screen.fade-out{opacity:0!important;pointer-events:none}
+    #splash-content{animation:splashFadeIn .6s ease both}
+  </style>
+  <div id="splash-content" style="text-align:center;user-select:none;padding:20px;">
+    <div style="width:68px;height:68px;background:linear-gradient(135deg,#00cc33,#006b18);border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 24px;animation:splashPulse 2s ease-in-out infinite;">
+      <svg width="36" height="36" fill="none" viewBox="0 0 24 24"><path d="M13 2L4.09 12.96A1 1 0 005 14.5h6.5L11 22l8.91-10.96A1 1 0 0019 9.5H12.5L13 2Z" fill="#00ff41"/></svg>
+    </div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:clamp(1.4rem,4vw,2rem);font-weight:800;color:#d0ffd8;margin-bottom:6px;text-shadow:0 0 24px rgba(0,255,65,.4);"><span style="color:#00ff41;">&gt;_</span> ElectroShop</div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#5a8060;margin-bottom:52px;letter-spacing:.08em;">// sistema de componentes &amp; electrónica</div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:#00ff41;letter-spacing:.18em;border:1px solid rgba(0,255,65,.3);padding:15px 38px;border-radius:4px;background:rgba(0,255,65,.06);display:inline-block;animation:splashBlink 1.4s ease-in-out infinite;">[ CLICK PARA INICIAR ]</div>
+    <div style="font-family:'JetBrains Mono',monospace;color:#00ff41;font-size:22px;margin-top:22px;animation:splashCursor .8s step-start infinite;">█</div>
+  </div>
+</div>
+
 <!-- ── HEADER ── -->
 <header style="background:rgba(2,6,23,.85); backdrop-filter:blur(12px); border-bottom:1px solid rgba(255,255,255,.06); position:sticky; top:0; z-index:40;">
   <div style="max-width:1280px; margin:0 auto; padding:0 20px; height:60px; display:flex; align-items:center; justify-content:space-between;">
@@ -992,6 +1013,18 @@ if (!supabaseUrl || !supabaseKey) {
   }
   waSend.addEventListener('click', enviarWA);
   waInput.addEventListener('keydown', e => { if (e.key === 'Enter') enviarWA(); });
+
+  // ── Splash screen ──
+  const splash = document.getElementById('splash-screen') as HTMLElement | null;
+  if (splash) {
+    const splashAudio = new Audio('/anime-ahh.mp3');
+    splashAudio.preload = 'auto';
+    splash.addEventListener('click', () => {
+      splashAudio.play().catch(() => {});
+      splash.classList.add('fade-out');
+      setTimeout(() => splash.remove(), 650);
+    }, { once: true });
+  }
 
   // ── Imágenes rotas → placeholder ──
   document.querySelectorAll<HTMLImageElement>('.img-producto').forEach(img => {
